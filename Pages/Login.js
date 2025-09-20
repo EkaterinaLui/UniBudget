@@ -40,14 +40,10 @@ function Login({ navigation }) {
 
   // --- Google Provider (Expo Go) ---
   const [googleRequest, googleResponse, promptGoogle] = Google.useAuthRequest({
-    expoClientId:
-      "91281193889-gocdr5cd2vq5mnjav2cl5d60efu0v7p5.apps.googleusercontent.com",
-    androidClientId:
-      "91281193889-gocdr5cd2vq5mnjav2cl5d60efu0v7p5.apps.googleusercontent.com", 
-    iosClientId:
-      "91281193889-gocdr5cd2vq5mnjav2cl5d60efu0v7p5.apps.googleusercontent.com", 
-    webClientId:
-      "91281193889-gocdr5cd2vq5mnjav2cl5d60efu0v7p5.apps.googleusercontent.com",
+    expoClientId: process.env.EXPO_CLIENT_ID,
+    androidClientId: process.env.ANDROID_CLIENT_ID,
+    iosClientId: process.env.IOS_CLIENT_ID,
+    webClientId: process.env.WEB_CLIENT_ID,
   });
 
   useEffect(() => {
