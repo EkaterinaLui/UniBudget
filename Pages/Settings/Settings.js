@@ -1,12 +1,11 @@
-import React from "react";
-import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation, useTheme } from "@react-navigation/native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 function Settings() {
   const navigation = useNavigation();
   const { colors } = useTheme();
 
-  // רשימת ההגדרות – ככה לא צריך לחזור על אותו קוד חמש פעמים
+  // רשימת ההגדרות
   const settingsOptions = [
     { title: "הגדרות כלליות", screen: "General" },
     { title: "התראות", screen: "Notification" },

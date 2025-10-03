@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { loadSettings, saveSettings } from "../../Utilities/ServiceSettings";
 
-// ✅ הגדרות ברירת מחדל להתראות
+//  הגדרות ברירת מחדל להתראות
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true, // באנר בזמן אמת
@@ -26,7 +26,7 @@ function Notific() {
   const [loading, setLoading] = useState(true);
   const [budgetLimit, setBudgetLimit] = useState(true); // דלוק כברירת מחדל
 
-  // ✅ טעינת ההגדרות מה־Firestore
+
   useEffect(() => {
     (async () => {
       try {
@@ -41,7 +41,7 @@ function Notific() {
     })();
   }, []);
 
-  // ✅ שמירת ההגדרה
+  // שמירת ההגדרה
   const updateBudgetLimit = async (val) => {
     setBudgetLimit(val);
     try {
@@ -55,7 +55,7 @@ function Notific() {
         // שולח התראה לדוגמה כשהמשתמש מדליק
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: "🔔 חריגה מתקציב",
+            title: "חריגה מתקציב",
             body: "תתחיל לקבל התראות אם הקבוצה או קטגוריה חורגים מהתקציב",
           },
           trigger: null, // מיידי
@@ -86,7 +86,7 @@ function Notific() {
         התראות
       </Text>
 
-      {/* 🔹 כרטיס חריגת תקציב */}
+      {/* כרטיס חריגת תקציב */}
       <View
         style={[
           styles.card,

@@ -49,7 +49,7 @@ function AddUsers({ navigation, route }) {
     });
 
     return () => unsubscribe();
-  }, [db, groupId]);
+  }, [groupId]);
 
   const handleGoBack = () => navigation.goBack();
 
@@ -66,7 +66,10 @@ function AddUsers({ navigation, route }) {
     setIsAddingUser(true);
     try {
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("uniqueCode", "==", userCodeInput.trim()));
+      const q = query(
+        usersRef,
+        where("uniqueCode", "==", userCodeInput.trim())
+      );
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -89,7 +92,10 @@ function AddUsers({ navigation, route }) {
         memberIds: arrayUnion(foundUserId),
       });
 
-      Alert.alert("הצלחה", `המשתמש "${userData.name}" נוסף לקבוצה "${groupName || "ללא שם"}"`);
+      Alert.alert(
+        "הצלחה",
+        `המשתמש "${userData.name}" נוסף לקבוצה "${groupName || "ללא שם"}"`
+      );
       setUserCodeInput("");
     } catch (error) {
       console.error("שגיאה בהוספה:", error);
@@ -101,22 +107,34 @@ function AddUsers({ navigation, route }) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.keyboardAvoiding, { backgroundColor: colors.addUsersBackground }]}
+      style={[
+        styles.keyboardAvoiding,
+        { backgroundColor: colors.addUsersBackground },
+      ]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
     >
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.addUsersBackground }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { backgroundColor: colors.addUsersBackground },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.container}>
           {/* כפתור חזור */}
           <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <Ionicons name="arrow-forward" size={30} color={colors.addUsersPrimary} />
+            <Ionicons
+              name="arrow-forward"
+              size={30}
+              color={colors.addUsersPrimary}
+            />
           </TouchableOpacity>
 
           {/* כותרת */}
-          <Text style={[styles.title, { color: colors.addUsersTitle }]}>הוספת משתמש חדש</Text>
+          <Text style={[styles.title, { color: colors.addUsersTitle }]}>
+            הוספת משתמש חדש
+          </Text>
 
           {/* שדה קוד משתמש */}
           <TextInput
@@ -140,25 +158,36 @@ function AddUsers({ navigation, route }) {
             style={[
               styles.addButton,
               {
-                backgroundColor: userCodeInput.trim() && !isAddingUser
-                  ? colors.addUsersPrimary
-                  : colors.addUsersPrimaryDisabled,
+                backgroundColor:
+                  userCodeInput.trim() && !isAddingUser
+                    ? colors.addUsersPrimary
+                    : colors.addUsersPrimaryDisabled,
               },
             ]}
             onPress={handleAddUser}
             disabled={!userCodeInput.trim() || isAddingUser}
           >
             {isAddingUser ? (
-              <ActivityIndicator size="small" color={colors.addUsersButtonText} />
+              <ActivityIndicator
+                size="small"
+                color={colors.addUsersButtonText}
+              />
             ) : (
-              <Text style={[styles.addButtonText, { color: colors.addUsersButtonText }]}>
+              <Text
+                style={[
+                  styles.addButtonText,
+                  { color: colors.addUsersButtonText },
+                ]}
+              >
                 הוסף משתמש
               </Text>
             )}
           </TouchableOpacity>
 
           {/* רשימת חברים */}
-          <Text style={[styles.subtitle, { color: colors.addUsersSubtitle }]}>משתמשים בקבוצה:</Text>
+          <Text style={[styles.subtitle, { color: colors.addUsersSubtitle }]}>
+            משתמשים בקבוצה:
+          </Text>
 
           {currentMembers.length > 0 ? (
             currentMembers.map((item, index) => (
@@ -169,12 +198,22 @@ function AddUsers({ navigation, route }) {
                   { backgroundColor: colors.addUsersCard },
                 ]}
               >
-                <Ionicons name="person-circle-outline" size={28} color={colors.addUsersPrimary} />
-                <Text style={[styles.memberText, { color: colors.addUsersTitle }]}>{item.name}</Text>
+                <Ionicons
+                  name="person-circle-outline"
+                  size={28}
+                  color={colors.addUsersPrimary}
+                />
+                <Text
+                  style={[styles.memberText, { color: colors.addUsersTitle }]}
+                >
+                  {item.name}
+                </Text>
               </View>
             ))
           ) : (
-            <Text style={[styles.emptyListText, { color: colors.addUsersEmpty }]}>
+            <Text
+              style={[styles.emptyListText, { color: colors.addUsersEmpty }]}
+            >
               אין משתתפים עדיין
             </Text>
           )}
@@ -242,7 +281,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginBottom: 12,
   },
-  memberText: { fontSize: 18 },
+  memberText: {
+    fontSize: 18,
+  },
   emptyListText: {
     fontSize: 16,
     textAlign: "center",

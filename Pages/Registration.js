@@ -1,20 +1,20 @@
-import React, { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-  Dimensions,
-  ActivityIndicator,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 
 const { width } = Dimensions.get("window");
@@ -186,7 +186,7 @@ function Registration({ navigation }) {
 
 // מייצר קוד משתמש ייחודי
 function generateUniqueCode(length = 6) {
-  const chars = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789";
+  const chars = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuwyz123456789";
   let result = "";
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));

@@ -1,10 +1,10 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  getDocs, 
-  serverTimestamp 
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  serverTimestamp,
+  setDoc
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -16,7 +16,7 @@ const archiveCategory = async (groupId, category) => {
     const archivedRef = doc(db, "groups", groupId, "archivedCategories", id);
     await setDoc(archivedRef, {
       ...data,
-      archivedAt: serverTimestamp(), // ✅ במקום DataTransfer
+      archivedAt: serverTimestamp(), 
     });
 
     // מציאת הוצאות שקשורות לקטגוריה

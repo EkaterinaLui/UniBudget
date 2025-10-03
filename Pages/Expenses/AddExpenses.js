@@ -41,7 +41,7 @@ const AddExpenses = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- טוען שם הקטגוריה ---
+  //  טוען שם הקטגוריה 
   useEffect(() => {
     if (!groupId || !initialCategoryId) {
       Alert.alert("שגיאה", "פרטי הקבוצה או הקטגוריה חסרים.");
@@ -78,9 +78,9 @@ const AddExpenses = () => {
     fetchCategoryName();
   }, [groupId, initialCategoryId, navigation]);
 
-  // 🔔 בדיקה אם חרגו מהתקציב (קבוצתי או קטגוריה)
+  //  בדיקה אם חרגו מהתקציב (קבוצתי או קטגוריה)
   const checkBudgetAndNotify = async () => {
-    if (!settings?.notifications?.budgetLimit) return; // כבוי בהגדרות → לא שולח התראות
+    if (!settings?.notifications?.budgetLimit) return; // כבוי בהגדרות - לא שולח התראות
 
     try {
       const groupRef = doc(db, "groups", groupId);
@@ -101,7 +101,7 @@ const AddExpenses = () => {
       if (totalExpenses > (groupData.totalBudget || 0)) {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: "⚠️ חריגה מתקציב הקבוצה",
+            title: " חריגה מתקציב הקבוצה",
             body: "סכום ההוצאות עבר את גבול התקציב הכולל!",
           },
           trigger: null, // מיידי
@@ -127,7 +127,7 @@ const AddExpenses = () => {
         if (catExpenses > (catData.budget || 0)) {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: `⚠️ חריגה בקטגוריה "${catData.name}"`,
+              title: `חריגה בקטגוריה "${catData.name}"`,
               body: "הוצאות הקטגוריה עברו את התקציב שלה!",
             },
             trigger: null,
@@ -161,7 +161,7 @@ const AddExpenses = () => {
         createdAt: Timestamp.now(),
       });
 
-      // 🔔 אחרי שמירה → בדוק חריגה
+      //  אחרי שמירה - בדוק חריגה
       await checkBudgetAndNotify();
 
       Alert.alert("הצלחה", "ההוצאה נוספה בהצלחה!");
@@ -220,7 +220,7 @@ const AddExpenses = () => {
           <Text style={styles.label}>תיאור (אופציונלי)</Text>
           <TextInput
             style={styles.input}
-            placeholder="מה נקנה?"
+            placeholder="תיאור"
             value={description}
             onChangeText={setDescription}
           />

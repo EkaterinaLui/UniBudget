@@ -129,7 +129,11 @@ const UsersDetails = () => {
         ]}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-forward" size={24} color={colors.userDetailsText} />
+        <Ionicons
+          name="arrow-forward"
+          size={24}
+          color={colors.userDetailsText}
+        />
       </TouchableOpacity>
 
       <Text style={[styles.title, { color: colors.userDetailsTitle }]}>
@@ -207,7 +211,7 @@ const UsersDetails = () => {
         data={memberExpenses.slice(0, 5)}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
-          const formattedDate = formatDate(item.createdAt); 
+          const formattedDate = formatDate(item.createdAt);
           const categoryName = categories[item.categoryId] || "אחר";
           return (
             <View
@@ -255,7 +259,9 @@ const UsersDetails = () => {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: {
+    flex: 1,
+  },
   backButton: {
     position: "absolute",
     left: 20,
@@ -272,11 +278,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
-  subtitle: { 
+  subtitle: {
     fontSize: 18,
-     textAlign: "center",
-      marginBottom: 20 
-    },
+    textAlign: "center",
+    marginBottom: 20,
+  },
   chartCard: {
     marginHorizontal: 20,
     borderRadius: 10,
@@ -291,24 +297,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: "right",
   },
-  categoryRow: { 
-    flexDirection: "row", 
+  categoryRow: {
+    flexDirection: "row",
     alignItems: "center",
-     marginTop: 5
-     },
-  colorDot: {
-     width: 12,
-      height: 12, 
-      borderRadius: 6,
-       marginRight: 8
-       },
-  categoryText: { 
-    fontSize: 14 
+    marginTop: 5,
   },
-  listContent: { 
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: 14,
+  },
+  listContent: {
     paddingHorizontal: 20,
-     paddingBottom: 90 
-    },
+    paddingBottom: 90,
+  },
   expenseCard: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -321,17 +327,17 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   expenseDescription: {
-     fontSize: 16, 
-     fontWeight: "500" 
-    },
+    fontSize: 16,
+    fontWeight: "500",
+  },
   expenseCategoryDate: {
-     fontSize: 12,
-      marginTop: 2 
-    },
+    fontSize: 12,
+    marginTop: 2,
+  },
   expenseAmount: {
-     fontSize: 16,
-      fontWeight: "bold"
-     },
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default UsersDetails;

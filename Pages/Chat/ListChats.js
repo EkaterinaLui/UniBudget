@@ -1,24 +1,24 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useTheme } from "@react-navigation/native";
-import { db } from "../../firebase";
 import {
   collection,
-  query,
-  where,
+  limit,
   onSnapshot,
   orderBy,
-  limit,
+  query,
+  where,
 } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { db } from "../../firebase";
 
 const ListChats = ({ userId, userName }) => {
   const navigation = useNavigation();
@@ -45,7 +45,7 @@ const ListChats = ({ userId, userName }) => {
           name: doc.data().groupName || "קבוצה ללא שם",
           ...doc.data(),
         }))
-        // ✅ סינון בצד הלקוח לפי openedBy
+
         .filter((g) => g.openedBy?.includes(userId));
 
       groups.forEach((g) => {
@@ -71,7 +71,7 @@ const ListChats = ({ userId, userName }) => {
     });
     unsubscribers.push(unsubGroups);
 
-    // 🔹 צ'אטים פרטיים – קודם כל שולפים לפי המשתתפים
+    //  צ'אטים פרטיים – קודם כל שולפים לפי המשתתפים
     const privateQuery = query(
       collection(db, "privateChats"),
       where("participantsIds", "array-contains", userId)
@@ -84,7 +84,7 @@ const ListChats = ({ userId, userName }) => {
           type: "private",
           ...doc.data(),
         }))
-        // ✅ סינון בצד הלקוח לפי openedBy
+
         .filter((p) => p.openedBy?.includes(userId));
 
       privates.forEach((p) => {
@@ -210,10 +210,24 @@ const ListChats = ({ userId, userName }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  scrollContent: { paddingTop: 12, paddingBottom: 24, marginTop: 30 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  noChats: { textAlign: "center", fontSize: 16, marginVertical: 20 },
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 12,
+    paddingBottom: 24,
+    marginTop: 30,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noChats: {
+    textAlign: "center",
+    fontSize: 16,
+    marginVertical: 20,
+  },
   chatItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -222,14 +236,20 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     borderRadius: 12,
   },
-  chatInfo: { marginLeft: 12, flex: 1 },
+  chatInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
   chatName: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 2,
     textAlign: "right",
   },
-  lastMessage: { fontSize: 14, textAlign: "right" },
+  lastMessage: {
+    fontSize: 14,
+    textAlign: "right",
+  },
 });
 
 export default ListChats;

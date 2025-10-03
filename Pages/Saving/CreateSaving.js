@@ -1,21 +1,21 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute, useTheme } from "@react-navigation/native";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-  ActivityIndicator,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute, useTheme } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { db } from "../../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const CreateSaving = () => {
   const navigation = useNavigation();
@@ -145,12 +145,12 @@ const CreateSaving = () => {
 
 const styles = StyleSheet.create({
   root: {
-     flex: 1
-     },
+    flex: 1,
+  },
   scroll: {
-     padding: 20, 
-     paddingBottom: 40 
-    },
+    padding: 20,
+    paddingBottom: 40,
+  },
   backButton: {
     position: "absolute",
     left: 20,
@@ -179,11 +179,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
-  buttonText: { 
-    color: "white", 
-    fontSize: 18, 
-    fontWeight: "600" 
-},
+  buttonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "600",
+  },
 });
 
 export default CreateSaving;

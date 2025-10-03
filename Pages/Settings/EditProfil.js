@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from "react";
 import {
-  View,
+  useIsFocused,
+  useNavigation,
+  useTheme,
+} from "@react-navigation/native";
+import { updateEmail, updatePassword, updateProfile } from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Image,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  useNavigation,
-  useTheme,
-  useIsFocused,
-} from "@react-navigation/native";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
-import { updateProfile, updateEmail, updatePassword } from "firebase/auth";
 
 const EditProfil = () => {
   const user = auth.currentUser;
@@ -33,7 +33,7 @@ const EditProfil = () => {
   const [avatar, setAvatar] = useState(user?.photoURL || "default");
   const [loading, setLoading] = useState(false);
 
-  // טעינת פרופיל מה-DB
+  // טעינת פרופיל
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -64,10 +64,10 @@ const EditProfil = () => {
       const userId = auth.currentUser.uid;
       const userRef = doc(db, "users", userId);
 
-      // עדכון במסד Firestore
+      // עדכון
       await updateDoc(userRef, { name, email, avatar });
 
-      // עדכון בפרופיל Firebase Auth
+      // עדכון בפרופיל
       await updateProfile(auth.currentUser, {
         displayName: name,
         photoURL: avatar,
@@ -193,7 +193,10 @@ const EditProfil = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: {
+    flex: 1,
+    padding: 16,
+  },
   card: {
     borderRadius: 12,
     padding: 16,

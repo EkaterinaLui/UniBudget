@@ -42,7 +42,7 @@ const SavingDetails = () => {
   const [addDep, setAddDep] = useState(false);
   const [depAmount, setDepAmount] = useState("");
 
-  // טוען יעד + הפקדות
+  // טוען יעד והפקדות
   useEffect(() => {
     const targetRef = doc(db, "groups", groupId, "savings", savingId);
     const unsubTarget = onSnapshot(targetRef, (snap) => {
@@ -333,7 +333,10 @@ const SavingDetails = () => {
                 <Text style={{ color: colors.text }}>ביטול</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                style={[
+                  styles.modalButton,
+                  { backgroundColor: colors.primary },
+                ]}
                 onPress={addDeposit}
               >
                 <Text style={{ color: "white" }}>שמור</Text>
@@ -348,17 +351,17 @@ const SavingDetails = () => {
 
 const styles = StyleSheet.create({
   root: {
-     flex: 1
-     },
+    flex: 1,
+  },
   scroll: {
-     padding: 20,
-      paddingBottom: 60
-     },
-  centered: { 
-    flex: 1, 
+    padding: 20,
+    paddingBottom: 60,
+  },
+  centered: {
+    flex: 1,
     justifyContent: "center",
-     alignItems: "center" 
-    },
+    alignItems: "center",
+  },
   backButton: {
     position: "absolute",
     left: 20,
@@ -366,11 +369,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 50,
   },
-  targetName: { 
-    fontSize: 26, 
+  targetName: {
+    fontSize: 26,
     fontWeight: "bold",
-    textAlign: "center" 
-},
+    textAlign: "center",
+  },
   targetAmount: {
     fontSize: 18,
     textAlign: "center",
@@ -384,9 +387,9 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   progressFill: {
-     height: "100%", 
-     borderRadius: 6 
-    },
+    height: "100%",
+    borderRadius: 6,
+  },
   progressText: {
     position: "absolute",
     width: "100%",
@@ -403,10 +406,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   addButtonText: {
-     color: "white",
-      marginLeft: 8, 
-      fontWeight: "600"
-     },
+    color: "white",
+    marginLeft: 8,
+    fontWeight: "600",
+  },
   deleteButton: {
     flexDirection: "row",
     justifyContent: "center",
@@ -415,11 +418,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 50,
   },
-  deleteButtonText: { 
-    color: "white", 
+  deleteButtonText: {
+    color: "white",
     marginLeft: 8,
-     fontWeight: "600"
-     },
+    fontWeight: "600",
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -434,10 +437,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 10,
   },
-  depositAmount: { 
-    fontSize: 16, 
-    fontWeight: "600"
- },
+  depositAmount: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -445,15 +448,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-     padding: 20,
-      borderRadius: 10, 
-      width: "80%"
-     },
-  modalTitle: { 
+    padding: 20,
+    borderRadius: 10,
+    width: "80%",
+  },
+  modalTitle: {
     fontSize: 18,
-     fontWeight: "bold",
-      marginBottom: 10 
-    },
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
   modalInput: {
     borderWidth: 1,
     borderRadius: 8,
@@ -461,10 +464,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
   },
-  modalButtons: { 
-    flexDirection: "row", 
-    justifyContent: "space-between" 
-},
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   modalButton: {
     flex: 1,
     alignItems: "center",

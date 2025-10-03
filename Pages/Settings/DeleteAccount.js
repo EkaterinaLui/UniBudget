@@ -1,27 +1,27 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { useNavigation, useTheme } from "@react-navigation/native";
 import {
   deleteUser,
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from "firebase/auth";
 import {
-  doc,
+  collection,
   deleteDoc,
+  doc,
   getDocs,
   updateDoc,
-  collection,
 } from "firebase/firestore";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { auth, db } from "../../firebase";
-import { useNavigation, useTheme } from "@react-navigation/native";
 
 function DeleteAccount() {
   const navigation = useNavigation();
@@ -116,7 +116,8 @@ function DeleteAccount() {
       <Text style={[styles.title, { color: colors.text }]}>מחיקת חשבון</Text>
 
       <Text style={[styles.desc, { color: colors.textSecondary }]}>
-        מחיקת חשבון תמחק את כל הנתונים שלך מהאפליקציה. פעולה זו סופית ולא ניתנת לשחזור.
+        מחיקת חשבון תמחק את כל הנתונים שלך מהאפליקציה. פעולה זו סופית ולא ניתנת
+        לשחזור.
       </Text>
 
       <TextInput
@@ -148,21 +149,21 @@ function DeleteAccount() {
 
 const styles = StyleSheet.create({
   container: {
-     flex: 1,
-      padding: 20,
-       justifyContent: "center"
-     },
-  title: { 
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+  },
+  title: {
     fontSize: 24,
-     fontWeight: "bold", 
-     textAlign: "center",
-      marginBottom: 20 
-    },
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+  },
   desc: {
-     fontSize: 14,
-      textAlign: "center", 
-      marginBottom: 20 
-    },
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 20,
+  },
   input: {
     width: "100%",
     padding: 12,
@@ -177,10 +178,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   deleteText: {
-     color: "#fff",
-      fontSize: 16, 
-      fontWeight: "bold" 
-    },
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default DeleteAccount;

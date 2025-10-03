@@ -20,6 +20,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { db, auth as firebaseAuth } from "./firebase";
 
+
 // Screens
 import Reports from "./Pages/Reports";
 import LockScreen from "./Pages/Settings/LockScreen";

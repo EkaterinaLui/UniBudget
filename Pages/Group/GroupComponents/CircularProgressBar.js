@@ -1,8 +1,6 @@
-// Components/GroupComponents/CircularProgressBar.js
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "@react-navigation/native";
+import { StyleSheet, Text, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 
 const CircularProgressBar = ({ progress }) => {
   const { colors } = useTheme();

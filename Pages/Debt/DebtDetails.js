@@ -108,7 +108,7 @@ const DebtDetails = () => {
         settledAt: Timestamp.now(),
       });
 
-      Alert.alert("הצלחה", `החוב ל־${debt.name} נסגר בהצלחה ✅`);
+      Alert.alert("הצלחה", `החוב ל־${debt.name} נסגר בהצלחה`);
     } catch (error) {
       console.error("Error closing debt:", error);
       Alert.alert("שגיאה", "סגירת החוב נכשלה");
@@ -164,7 +164,7 @@ const DebtDetails = () => {
         keyExtractor={(_, index) => index.toString()}
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Text style={{ color: colors.secondary }}>אין חובות כרגע 🎉</Text>
+            <Text style={{ color: colors.secondary }}>אין חובות כרגע </Text>
           </View>
         }
         contentContainerStyle={{ padding: 20 }}
@@ -174,8 +174,13 @@ const DebtDetails = () => {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  backButton: { marginTop: 50, marginLeft: 20 },
+  root: {
+    flex: 1,
+  },
+  backButton: {
+    marginTop: 50,
+    marginLeft: 20,
+  },
   title: {
     fontSize: 22,
     fontWeight: "bold",
@@ -190,8 +195,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
   },
-  text: { fontSize: 16, marginBottom: 10 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  text: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   closeButton: {
     width: "90%",
     paddingVertical: 8,
@@ -201,11 +213,11 @@ const styles = StyleSheet.create({
     marginTop: 5,
     alignSelf: "flex-start",
   },
-  closeButtonText: { 
-    color: "#fff", 
-    fontSize: 14, 
-    fontWeight: "bold"
- },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
 });
 
 export default DebtDetails;

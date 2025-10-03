@@ -50,7 +50,7 @@ function Login({ navigation }) {
     iosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
     webClientId: process.env.GOOGLE_WEB_CLIENT_ID,
 
-    // השורה שמכריחה את Google לשאול כל פעם באיזה חשבון לבחור
+    // השורה שמכריחה את Google שואל כל פעם באיזה חשבון לבחור
     prompt: "select_account",
   });
 

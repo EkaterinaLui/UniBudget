@@ -1,15 +1,14 @@
-import React from "react";
-import { TouchableOpacity, Text, Alert, StyleSheet } from "react-native";
 import { useTheme } from "@react-navigation/native";
-import { db } from "../firebase";
 import {
   collection,
-  getDocs,
-  doc,
   deleteDoc,
+  doc,
+  getDocs,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
+import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { db } from "../firebase";
 
 const ResetBudgetsButton = ({ groupId }) => {
   const { colors } = useTheme();
@@ -20,7 +19,7 @@ const ResetBudgetsButton = ({ groupId }) => {
       const year = now.getFullYear();
       const month = now.getMonth() + 1;
 
-      // 🔹 יצירת מסמך ארכיון עבור החודש הנוכחי
+      //  יצירת מסמך ארכיון עבור החודש הנוכחי
       const archiveRef = doc(
         collection(db, "groups", groupId, "archive"),
         `${year}-${month}`
@@ -52,7 +51,7 @@ const ResetBudgetsButton = ({ groupId }) => {
         }
       }
 
-      // 🔹 הוצאות
+      //  הוצאות
       const expSnap = await getDocs(
         collection(db, "groups", groupId, "expenses")
       );

@@ -1,27 +1,27 @@
-import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  ActivityIndicator,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
 import { useTheme } from "@react-navigation/native";
-import * as Progress from "react-native-progress";
 import {
+  Timestamp,
   collection,
+  doc,
+  getDoc,
   getDocs,
   query,
   where,
-  Timestamp,
-  doc,
-  getDoc,
 } from "firebase/firestore";
-import { db, auth } from "../firebase"; 
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { BarChart, LineChart, PieChart } from "react-native-chart-kit";
+import * as Progress from "react-native-progress";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { auth, db } from "../firebase";
 
 import { useCurrency } from "../Utilities/Currency";
 
@@ -301,32 +301,6 @@ const Report = () => {
     fetchData();
   }, [selectedGroup, selectedMonth, selectedYear, user]);
 
-  // פונקציות יצוא
-  const buildCategoriesExport = (arr) => ({
-    type: "pie",
-    items: arr.map((x) => ({
-      name: x.name,
-      amount: x.population,
-      color: x.color,
-    })),
-    total: arr.reduce((s, i) => s + (i.population || 0), 0),
-  });
-
-  const buildLineExport = (line) => ({
-    type: "line",
-    points: (line?.datasets?.[0]?.data || []).map((v, i) => ({
-      label: line?.labels?.[i] ?? String(i + 1),
-      value: v ?? 0,
-    })),
-  });
-
-  const buildBarExport = (bar) => ({
-    type: "bar",
-    points: (bar?.datasets?.[0]?.data || []).map((v, i) => ({
-      label: bar?.labels?.[i] ?? String(i + 1),
-      value: v ?? 0,
-    })),
-  });
 
   return (
     <SafeAreaView

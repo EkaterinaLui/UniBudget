@@ -145,7 +145,6 @@ const GroupInfo = () => {
     ]);
   };
 
-
   const groupChat = async () => {
     const groupRef = doc(db, "groups", groupId);
     await updateDoc(groupRef, {
@@ -165,12 +164,13 @@ const GroupInfo = () => {
     });
   };
 
-
   const openPrivateChat = async (member) => {
     if (!member) return;
 
     const conversationId =
-      userId < member.uid ? `${userId}_${member.uid}` : `${member.uid}_${userId}`;
+      userId < member.uid
+        ? `${userId}_${member.uid}`
+        : `${member.uid}_${userId}`;
     const chatRef = doc(db, "privateChats", conversationId);
     const chatSnap = await getDoc(chatRef);
 
@@ -186,7 +186,7 @@ const GroupInfo = () => {
           { uid: member.uid, name: member.name },
         ],
         createdAt: serverTimestamp(),
-        openedBy: [userId], 
+        openedBy: [userId],
       });
     } else {
       await updateDoc(chatRef, {
@@ -480,8 +480,14 @@ const GroupInfo = () => {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  root: {
+    flex: 1,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   backButton: {
     position: "absolute",
     left: 20,
@@ -492,15 +498,25 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
-  header: { padding: 20, alignItems: "center", marginBottom: 20 },
-  groupName: { fontSize: 26, fontWeight: "bold", textAlign: "center" },
+  header: {
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  groupName: {
+    fontSize: 26,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
     paddingHorizontal: 20,
     marginBottom: 10,
   },
-  membersContainer: { paddingHorizontal: 20 },
+  membersContainer: {
+    paddingHorizontal: 20,
+  },
   memberCard: {
     padding: 15,
     borderRadius: 10,
@@ -509,8 +525,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
   },
-  memberName: { fontSize: 16, fontWeight: "500" },
-  actionsContainer: { marginTop: 20, paddingHorizontal: 20 },
+  memberName: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  actionsContainer: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -522,8 +544,16 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
   },
-  actionText: { fontSize: 16, fontWeight: "bold", marginLeft: 10 },
-  modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center" },
+  actionText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   modalContent: {
     borderRadius: 10,
     padding: 20,
@@ -545,9 +575,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 8,
   },
-  modalButtonText: { fontSize: 16, marginLeft: 10 },
-  closeButton: { marginTop: 10 },
-  closeButtonText: { fontSize: 16 },
+  modalButtonText: {
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  closeButton: {
+    marginTop: 10,
+  },
+  closeButtonText: {
+    fontSize: 16,
+  },
 });
 
 export default GroupInfo;
