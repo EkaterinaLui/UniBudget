@@ -5,11 +5,11 @@ import * as Notifications from "expo-notifications";
 import { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   I18nManager,
-  Platform,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SettingsContext, SettingsProvider } from "./Utilities/SettingsContext";
@@ -17,11 +17,12 @@ import { CustomDarkTheme, CustomLightTheme } from "./Utilities/Theme";
 
 import * as SecureStore from "expo-secure-store";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth as firebaseAuth } from "./firebase";
 
-
 // Screens
+import AppAdmin from "./AdminApp/AppAdmin";
+import Error from "./Componets/Error";
 import Reports from "./Pages/Reports";
 import LockScreen from "./Pages/Settings/LockScreen";
 import AuthStack from "./Stacks/AuthStack";
@@ -41,7 +42,7 @@ if (!I18nManager.isRTL) {
 // הגדרת התראות
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowBanner: true, 
+    shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
@@ -67,7 +68,7 @@ async function registerForPushNotificationsAsync(userId) {
   const token = (await Notifications.getExpoPushTokenAsync()).data;
   console.log("Expo Push Token:", token);
 
-//שמירה ב דטאבייס
+  //שמירה ב דטאבייס
   await setDoc(
     doc(db, "users", userId),
     { expoPushToken: token },
@@ -75,7 +76,7 @@ async function registerForPushNotificationsAsync(userId) {
   );
 }
 
-function AppContent({ user, userId, locked, setLocked }) {
+function AppContent({ user, userId, locked, setLocked, userRole, isBlocked }) {
   const { settings } = useContext(SettingsContext);
 
   const navigationTheme =
@@ -87,63 +88,79 @@ function AppContent({ user, userId, locked, setLocked }) {
       {!user ? (
         <AuthStack db={db} />
       ) : locked ? (
-        <LockScreen onUnlock={() => setLocked(false)} /> 
+        <LockScreen onUnlock={() => setLocked(false)} />
       ) : (
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            headerShown: false,
-            tabBarShowLabel: false,
-            tabBarIcon: ({ color, size }) => {
-              const icons = {
-                בית: "home-outline",
-                דוחות: "documents-outline",
-                צאט: "chatbox-outline",
-                משתמש: "person-outline",
-                הגדרות: "settings-outline",
-              };
-              return (
-                <Ionicons
-                  name={icons[route.name] || "ellipse-outline"}
-                  size={size}
-                  color={color}
-                />
-              );
-            },
-            tabBarActiveTintColor: "#0077B6",
-            tabBarInactiveTintColor: "#90E0EF",
-            tabBarStyle: {
-              ...styles.tabBar,
-              backgroundColor: colors.tabBackground,
-              borderTopColor: colors.border,
-              paddingBottom: Platform.OS === "android" ? 12 : 24,
-            },
-          })}
-        >
-          <Tab.Screen name="בית">
-            {(props) => <MainStack {...props} db={db} userId={userId} />}
-          </Tab.Screen>
-          <Tab.Screen name="דוחות">
-            {(props) => (
-              <Reports {...props} auth={firebaseAuth} userId={userId} />
+        <>
+          {/* אם משתמש חסום יציג לו הודעה */}
+          {isBlocked && (
+            <View style={styles.blockedBanner}>
+              <Text style={styles.blockedText}>
+                המשתמש נחסם על ידי אפליקציה — נא לפנות לתמיכה
+              </Text>
+            </View>
+          )}
+
+          <Tab.Navigator
+            screenOptions={({ route }) => ({
+              headerShown: false,
+              tabBarShowLabel: false,
+               tabBarActiveTintColor: "#467077ff",
+               tabBarInactiveTintColor: "#90E0EF",
+              tabBarStyle: {
+                ...styles.tabBar,
+                backgroundColor: colors.tabBackground,
+                borderTopColor: colors.border,
+              },
+              tabBarIcon: ({ color, size }) => {
+                const icons = {
+                  בית: "home-outline",
+                  דוחות: "documents-outline",
+                  צאט: "chatbox-outline",
+                  משתמש: "person-outline",
+                  הגדרות: "settings-outline",
+                  ניהול: "construct-outline",
+                };
+                return (
+                  <Ionicons
+                    name={icons[route.name] || "ellipse-outline"}
+                    size={size}
+                    color={color}
+                  />
+                );
+              },
+            })}
+          >
+            {/* רק אם המשתמש לא חסום — להציג את שאר הטאבים */}
+            {!isBlocked && (
+              <>
+                <Tab.Screen name="בית">
+                  {(props) => <MainStack {...props} db={db} userId={userId} />}
+                </Tab.Screen>
+                <Tab.Screen name="דוחות">
+                  {(props) => <Reports {...props} userId={userId} />}
+                </Tab.Screen>
+                <Tab.Screen name="צאט">
+                  {(props) => <ChatStack {...props} db={db} userId={userId} />}
+                </Tab.Screen>
+              </>
             )}
-          </Tab.Screen>
-          <Tab.Screen name="צאט">
-            {(props) => <ChatStack {...props} db={db} userId={userId} />}
-          </Tab.Screen>
-          <Tab.Screen name="משתמש">
-            {(props) => (
-              <ProfilStack
-                {...props}
-                db={db}
-                userId={userId}
-                auth={firebaseAuth}
-              />
+
+            {/* תמיד יהיה גישה להגדרות ועמוד משתמש */}
+            <Tab.Screen name="משתמש">
+              {(props) => <ProfilStack {...props} db={db} userId={userId} auth={firebaseAuth} />}
+            </Tab.Screen>
+            <Tab.Screen name="הגדרות">
+              {(props) => <SettingsStack {...props} db={db} userId={userId} auth={firebaseAuth} />}
+            </Tab.Screen>
+
+            {/* רק מנהל אפךיקציה יכול לגשת */}
+            {userRole === "appAdmin" && (
+              <Tab.Screen name="ניהול">
+                {(props) => <AppAdmin {...props} db={db} userId={userId} currentUser={{ uid: userId, role: userRole }} />}
+              </Tab.Screen>
             )}
-          </Tab.Screen>
-          <Tab.Screen name="הגדרות">
-            {(props) => <SettingsStack {...props} db={db} userId={userId} />}
-          </Tab.Screen>
-        </Tab.Navigator>
+          </Tab.Navigator>
+        </>
       )}
     </NavigationContainer>
   );
@@ -154,34 +171,72 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [locked, setLocked] = useState(false);
- 
+  const [userRole, setUserRole] = useState(null);
+  const [isBlocked, setIsBlocked] = useState(false);
 
-  // טען זמן נעילה + PIN
+  // טען קוד
   useEffect(() => {
-    (async () => {     
+    (async () => {
       const savedPin = await SecureStore.getItemAsync("userPin");
       if (savedPin) setLocked(true);
       setIsLoading(false);
     })();
   }, []);
 
-
-  
-
   // האזנה למשתמש מחובר
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
+    useEffect(() => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
-        setUserId(currentUser.uid);
-        console.log("Firebase User ID:", currentUser.uid);
+        try {
+          setUser(currentUser);
+          setUserId(currentUser.uid);
 
-        registerForPushNotificationsAsync(currentUser.uid);
+          console.log("משתמש מחובר:", currentUser.uid);
+
+          const userRef = doc(db, "users", currentUser.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            setUserRole(data.role || "user");
+            setIsBlocked(data.blocked === true);
+
+            if (data.blocked) {
+              Alert.alert(
+                "החשבון שלך נחסם",
+                "הגישה לחשבון זה נחסמה. אנא פנה לתמיכה לקבלת עזרה.",
+                [{ text: "אישור" }]
+              );
+            }
+          } else {
+            console.log("לא נמצא משתמש — נוצר חדש");
+            await setDoc(
+              userRef,
+              {
+                uid: currentUser.uid,
+                email: currentUser.email || "",
+                name: currentUser.displayName || "משתמש חדש",
+                role: "user",
+                blocked: false,
+                createdAt: new Date(),
+              },
+              { merge: true }
+            );
+            setUserRole("user");
+            setIsBlocked(false);
+          }
+
+          await registerForPushNotificationsAsync(currentUser.uid);
+        } catch (err) {
+          console.error("שגיאה בטעינת נתוני משתמש:", err);
+        }
       } else {
         setUser(null);
         setUserId(null);
-        console.log("אין משתמש מחובר בפיירבייס");
+        setUserRole(null);
+        setIsBlocked(false);
       }
+
       setIsLoading(false);
     });
 
@@ -198,11 +253,20 @@ function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <SettingsProvider>
-        <AppContent user={user} userId={userId} locked={locked} setLocked={setLocked} />
-      </SettingsProvider>
-    </SafeAreaProvider>
+    <Error>
+      <SafeAreaProvider>
+        <SettingsProvider>
+          <AppContent
+            user={user}
+            userId={userId}
+            locked={locked}
+            setLocked={setLocked}
+            userRole={userRole}
+            isBlocked={isBlocked}
+          />
+        </SettingsProvider>
+      </SafeAreaProvider>
+    </Error>
   );
 }
 
@@ -229,6 +293,21 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     fontWeight: "500",
+  },
+  blockedBanner: {
+    marginTop: 50,
+    backgroundColor: "#b71c1c",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+  },
+  blockedText: {
+    color: "#fff",
+    fontWeight: "bold",
+    textAlign: "center",
+    fontSize: 18,
   },
 });
 

@@ -1,6 +1,6 @@
 import { useNavigation, useTheme } from "@react-navigation/native";
 import { signOut } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +18,7 @@ function Profil({ userId, auth }) {
   const { colors } = useTheme();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBackingUp, setIsBackingUp] = useState(false);
 
   // האזנה לפרטי המשתמש בזמן אמת
   useEffect(() => {
@@ -44,6 +45,38 @@ function Profil({ userId, auth }) {
 
     return () => unsubscribe();
   }, [userId]);
+
+ const backupUserData = async () => {
+    if (!userId) return;
+    setIsBackingUp(true);
+
+    try {
+      const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        Alert.alert("שגיאה", "לא נמצאו נתונים לגיבוי");
+        return;
+      }
+
+      // שמירה באוסף backups
+      await setDoc(doc(db, "backups", userId), {
+        ...userSnap.data(),
+        backupDate: serverTimestamp(),
+      });
+
+      Alert.alert("הצלחה", "הגיבוי נשמר בהצלחה!");
+    } catch (error) {
+console.error("שגיאה בגיבוי:", error);
+  navigation.navigate("Error", {
+    message: "אירעה שגיאה בעת ביצוע הגיבוי, אנא נסה שוב.",
+    onRetry: backupUserData,
+  });
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
 
   // יציאה מהמערכת
   const logOut = async () => {
@@ -127,6 +160,16 @@ function Profil({ userId, auth }) {
         )}
 
         <TouchableOpacity
+          disabled={isBackingUp}
+          style={[styles.editButton, { backgroundColor: colors.buttonPrimary }]}
+          onPress={backupUserData}
+        >
+          <Text style={[styles.buttonText, { color: colors.buttonText }]}>
+            {isBackingUp ? "מגבה..." : "בצע גיבוי"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.editButton, { backgroundColor: colors.buttonPrimary }]}
           onPress={() => navigation.navigate("EditProfil")}
         >
@@ -189,8 +232,16 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   idText: {
-    fontSize: 14,
+    fontSize: 20,
+    fontWeight: 800,
     marginBottom: 15,
+  },
+   backupButton: {
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 5,
+    width: "100%",
+    alignItems: "center",
   },
   editButton: {
     padding: 12,
