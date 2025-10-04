@@ -11,6 +11,7 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
 } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,6 +26,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { db } from "../firebase";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -42,13 +44,17 @@ function Login({ navigation }) {
     useProxy: false,
   });
 
+  //Goole
   const [request, response, promptAsync] = Google.useAuthRequest({
     responseType: "id_token",
     scopes: ["profile", "email"],
     redirectUri,
-    androidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
-    webClientId: process.env.GOOGLE_WEB_CLIENT_ID,
+    androidClientId:
+      "91281193889-3lfqht482v8aa45g0aofflrlgo3u76fi.apps.googleusercontent.com",
+    webClientId:
+      "91281193889-bjdv6ieh2tv4mu5h9guglirrvs51gdqr.apps.googleusercontent.com",
+    iosClientId:
+      "91281193889-j0ns2coed4giggnl3e4ehon4njt2i627.apps.googleusercontent.com",
 
     // השורה שמכריחה את Google שואל כל פעם באיזה חשבון לבחור
     prompt: "select_account",
@@ -66,19 +72,25 @@ function Login({ navigation }) {
       const credential = GoogleAuthProvider.credential(idToken);
 
       signInWithCredential(auth, credential)
-        .then((res) => {
+        .then(async (res) => {
+          await setDoc(
+            doc(db, "users", res.user.uid),
+            { lastLogin: serverTimestamp() },
+            { merge: true }
+          );
           console.log("Firebase User:", res.user.uid);
           navigation.replace("Home", { userId: res.user.uid });
         })
-        .catch((err) => {
-          console.error("Firebase sign-in error:", err);
+        .catch((error) => {
+          console.error("Firebase sign-in error:", error);
           Alert.alert("שגיאה", "התחברות עם Google נכשלה");
         });
     }
   }, [response, navigation]);
 
+  //Facebook
   const [fbRequest, fbResponse, promptFacebook] = Facebook.useAuthRequest({
-    clientId: process.env.FACEBOOK_CLIENT_ID,
+    clientId: "2292044251311591",
   });
 
   useEffect(() => {
@@ -89,7 +101,14 @@ function Login({ navigation }) {
         authentication.accessToken
       );
       signInWithCredential(auth, credential)
-        .then(() => Alert.alert("התחברת בהצלחה עם Facebook"))
+        .then(async (res) => {
+          await setDoc(
+            doc(db, "users", res.user.uid),
+            { lastLogin: serverTimestamp() },
+            { merge: true }
+          );
+          Alert.alert("התחברת בהצלחה עם Facebook");
+        })
         .catch(() => Alert.alert("שגיאה בהתחברות עם Facebook"));
     }
   }, [fbResponse]);
@@ -104,12 +123,17 @@ function Login({ navigation }) {
     setIsLoading(true);
     try {
       const auth = getAuth();
-      await signInWithEmailAndPassword(
+      const userCredential = await signInWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
         password
       );
-      Alert.alert("ברוך שובך!", "התחברת בהצלחה");
+      const user = userCredential.user;
+      await setDoc(
+        doc(db, "users", user.uid),
+        { lastLogin: serverTimestamp() },
+        { merge: true }
+      )
     } catch (firebaseError) {
       console.error(firebaseError);
       switch (firebaseError.code) {

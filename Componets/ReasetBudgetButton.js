@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { db } from "../firebase";
+import { getArchiveId } from "../Utilities/date";
 
 const ResetBudgetsButton = ({ groupId }) => {
   const { colors } = useTheme();
@@ -19,39 +20,33 @@ const ResetBudgetsButton = ({ groupId }) => {
       const year = now.getFullYear();
       const month = now.getMonth() + 1;
 
-      //  יצירת מסמך ארכיון עבור החודש הנוכחי
-      const archiveRef = doc(
-        collection(db, "groups", groupId, "archive"),
-        `${year}-${month}`
-      );
+      const archiveId = getArchiveId(year, month);
+
+      const archiveRef = doc(collection(db, "groups", groupId, "archive"), archiveId);
       await setDoc(archiveRef, {
         month,
         year,
         createdAt: now,
       });
 
-      //  קטגוריות
+      // קטגוריות
       const catsSnap = await getDocs(
         collection(db, "groups", groupId, "categories")
       );
       for (let cat of catsSnap.docs) {
         const data = cat.data();
-
-        // שמירה בארכיון
         await setDoc(doc(collection(archiveRef, "categories"), cat.id), data);
 
         if (data.isRegular) {
-          //  קטגוריה קבועה 
           await updateDoc(doc(db, "groups", groupId, "categories", cat.id), {
             budget: 0,
           });
         } else {
-          //  קטגוריה לא קבועה 
           await deleteDoc(doc(db, "groups", groupId, "categories", cat.id));
         }
       }
 
-      //  הוצאות
+      // הוצאות
       const expSnap = await getDocs(
         collection(db, "groups", groupId, "expenses")
       );

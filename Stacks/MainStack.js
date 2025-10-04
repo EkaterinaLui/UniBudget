@@ -1,20 +1,20 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import Error from "../Componets/Error";
+import CategoryDetails from "../Pages/Category/CategoryDetails";
+import CreateCategory from "../Pages/Category/CreateCategory";
+import DebtDetails from "../Pages/Debt/DebtDetails";
+import AddExpense from "../Pages/Expenses/AddExpenses";
+import AddUsers from "../Pages/Group/AddUsers";
+import CreateGroup from "../Pages/Group/CreateGroup";
+import Group from "../Pages/Group/Group";
+import GroupBudget from "../Pages/Group/GroupBudget";
+import GroupInfo from "../Pages/Group/GroupInfo";
+import UsersDetails from "../Pages/Group/UsersDetails";
 import Home from "../Pages/Home";
 import Profil from "../Pages/Profil";
-import CreateGroup from "../Pages/Group/CreateGroup";
-import AddUsers from "../Pages/Group/AddUsers";
-import Group from "../Pages/Group/Group";
-import CreateCategory from "../Pages/Category/CreateCategory";
-import AddExpense from "../Pages/Expenses/AddExpenses"
-import GroupInfo from "../Pages/Group/GroupInfo";
-import GroupBudget from "../Pages/Group/GroupBudget";
-import UsersDetails from "../Pages/Group/UsersDetails";
-import CategoryDetails from "../Pages/Category/CategoryDetails";
 import Reports from "../Pages/Reports";
 import CreateSaving from "../Pages/Saving/CreateSaving";
 import SavingDetails from "../Pages/Saving/SavingDetails";
-import DebtDetails from "../Pages/Debt/DebtDetails";
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +66,7 @@ function MainStack({ db, userId }) {
        <Stack.Screen name="DebtDetails">
         {(props) => <DebtDetails {...props} db={db} userId={userId} />}
       </Stack.Screen>
+      <Stack.Screen name="ErrorScreen" component={Error} />
     </Stack.Navigator>
   );
 }

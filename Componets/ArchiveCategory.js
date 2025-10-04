@@ -16,7 +16,7 @@ const archiveCategory = async (groupId, category) => {
     const archivedRef = doc(db, "groups", groupId, "archivedCategories", id);
     await setDoc(archivedRef, {
       ...data,
-      archivedAt: serverTimestamp(), 
+      archivedAt: serverTimestamp(),
     });
 
     // מציאת הוצאות שקשורות לקטגוריה
@@ -48,9 +48,9 @@ const archiveCategory = async (groupId, category) => {
     const activeCategoryRef = doc(db, "groups", groupId, "categories", id);
     await deleteDoc(activeCategoryRef);
 
-    console.log(` קטגוריה ${id} הועברה לארכיון.`);
+    console.log(`קטגוריה ${id} הועברה לארכיון.`);
   } catch (error) {
-    console.error(" שגיאה בארכוב קטגוריה:", error);
+    console.error("שגיאה בארכוב קטגוריה:", error);
   }
 };
 

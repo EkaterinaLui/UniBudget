@@ -22,8 +22,8 @@ import { BarChart, LineChart, PieChart } from "react-native-chart-kit";
 import * as Progress from "react-native-progress";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../firebase";
-
 import { useCurrency } from "../Utilities/Currency";
+import { getArchiveId } from "../Utilities/date";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -110,15 +110,10 @@ const Report = () => {
         let allSavings = [];
 
         const monthIndex = months.indexOf(selectedMonth);
-        const year = new Date().getFullYear();
-        const startOfMonth =
-          monthIndex >= 0
-            ? new Date(year, monthIndex, 1)
-            : new Date(year, 0, 1);
-        const endOfMonth =
-          monthIndex >= 0
-            ? new Date(year, monthIndex + 1, 0, 23, 59, 59)
-            : new Date(year, 0, 31, 23, 59, 59);
+        const year = selectedYear;
+
+        const startOfMonth = new Date(year, monthIndex, 1);
+        const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59);
 
         const groupId = selectedGroup.id;
 
@@ -130,6 +125,7 @@ const Report = () => {
           selectedYear === new Date().getFullYear() &&
           monthIndex === new Date().getMonth()
         ) {
+          // חודש נוכחי – טוען ישירות
           const expensesQ = query(
             collection(db, "groups", groupId, "expenses"),
             where("createdAt", ">=", Timestamp.fromDate(startOfMonth)),
@@ -143,11 +139,9 @@ const Report = () => {
             collection(db, "groups", groupId, "saving")
           );
         } else {
-          const archive = `${selectedYear}-${String(monthIndex + 1).padStart(
-            2,
-            "0"
-          )}`;
-          const archiveRef = doc(db, "groups", groupId, "archive", archive);
+          // חודש קודם – טוען מתוך ארכיון
+          const archiveId = getArchiveId(selectedYear, monthIndex + 1);
+          const archiveRef = doc(db, "groups", groupId, "archive", archiveId);
 
           expensesSnap = await getDocs(collection(archiveRef, "expenses"));
           categoriesSnap = await getDocs(collection(archiveRef, "categories"));
@@ -186,7 +180,7 @@ const Report = () => {
           datasets: [{ data: dailyTotals }],
         };
 
-        // חישוב לפי קטגוריות + חיסכון
+        // קטגוריות
         const categoriesTotal = {};
         allExpenses.forEach((e) => {
           if (e.categoryId) {
@@ -224,32 +218,14 @@ const Report = () => {
           (s, e) => s + (e.amount || 0),
           0
         );
-
         const profit = Math.max(totalBudget - totalExpenses, 0);
 
         const newPieDataBalance = [
-          ...Object.entries(categoriesTotal).map(([id, value]) => {
-            const category = allCategories.find((c) => c.id === id);
-            const saving = allSavings.find((s) => s.id === id);
-
-            return {
-              name: category?.name
-                ? category.name
-                : saving?.name
-                ? `חיסכון - ${saving.name}`
-                : "ללא קטגוריות",
-              population: value,
-              color:
-                category?.color ||
-                (saving ? "#2196f3" : `#${Math.floor(Math.random() * 16777215)
-                  .toString(16)
-                  .padStart(6, "0")}`),
-            };
-          }),
+          ...newPieDataCategories,
           { name: "יתרה", population: profit, color: "#4caf50" },
         ];
 
-        // לפי משתמשים
+        // משתמשים
         const usersTotal = {};
         allExpenses.forEach((e) => {
           usersTotal[e.userId] = (usersTotal[e.userId] || 0) + (e.amount || 0);

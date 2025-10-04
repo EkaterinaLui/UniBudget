@@ -74,6 +74,7 @@ const CreateCategory = () => {
         icon: selectedIcon,
         color: selectedColor,
         isTemporary, 
+        isRegular: false,
         createdAt: new Date(),
       };
 

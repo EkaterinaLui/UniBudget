@@ -1,23 +1,23 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  FlatList,
-  ActivityIndicator,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import {
   collection,
-  query,
-  where,
-  onSnapshot,
   doc,
   getDoc,
+  onSnapshot,
+  query,
+  where,
 } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 function Home({ navigation, db, userId }) {
   const [groups, setGroups] = useState([]);
@@ -25,6 +25,7 @@ function Home({ navigation, db, userId }) {
   const [userName, setUserName] = useState("");
   const { colors } = useTheme();
 
+  
   useEffect(() => {
     if (!db || !userId) return;
 

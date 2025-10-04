@@ -4,7 +4,6 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -27,7 +26,7 @@ function Registration({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleRegister = async () => {
+  const userRegister = async () => {
     setError("");
 
     if (!userName || !email || !password || !repeatPassword) {
@@ -64,14 +63,18 @@ function Registration({ navigation }) {
         name: userName.trim(),
         uniqueCode,
         createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
+        role: "user",
+        blocked: false,
       });
 
-      Alert.alert("נרשמת בהצלחה!", "ברוך הבא 🎉", [
-        {
-          text: "המשך",
-          onPress: () => navigation.replace("Home"),
+      await setDoc(doc(db, "settings", user.uid), {
+        theme: "light",
+        currency: "₪",
+        notifications: {
+          budgetLimit: true,
         },
-      ]);
+      });
     } catch (firebaseError) {
       switch (firebaseError.code) {
         case "auth/email-already-in-use":
@@ -147,7 +150,7 @@ function Registration({ navigation }) {
           {/* כפתור הרשמה */}
           <TouchableOpacity
             disabled={isLoading}
-            onPress={handleRegister}
+            onPress={userRegister}
             activeOpacity={0.8}
             style={{
               width: width * 0.9,
@@ -202,9 +205,9 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   container: {
-     alignItems: "center",
-      justifyContent: "center"
-     },
+    alignItems: "center",
+    justifyContent: "center",
+  },
   title: {
     fontSize: 36,
     fontWeight: "800",
@@ -225,10 +228,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#a8caff",
     shadowColor: "#a8caff",
-    shadowOffset: { 
-        width: 0,
-         height: 6 
-        },
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
@@ -240,17 +243,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   gradientButton: {
-     paddingVertical: 16
-     , alignItems: "center"
-     },
+    paddingVertical: 16,
+    alignItems: "center",
+  },
   buttonText: {
-     color: "#fff", 
-     fontSize: 20,
-      fontWeight: "700" 
-    },
-  linkButton: { 
-    marginTop: 25
- },
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  linkButton: {
+    marginTop: 25,
+  },
   linkText: {
     color: "#004a99",
     fontSize: 16,

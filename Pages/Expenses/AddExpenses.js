@@ -80,9 +80,27 @@ const AddExpenses = () => {
 
   //  בדיקה אם חרגו מהתקציב (קבוצתי או קטגוריה)
   const checkBudgetAndNotify = async () => {
-    if (!settings?.notifications?.budgetLimit) return; // כבוי בהגדרות - לא שולח התראות
+     try {
+    // טוען הגדרות מעודכנות ממסד הנתונים
+    const settingsSnap = await getDoc(doc(db, "settings", userId));
+    const settingsData = settingsSnap.exists() ? settingsSnap.data() : null;
 
-    try {
+    // בדיקה האם בכלל ההתרעה פעילה
+    if (!settingsData?.notifications?.budgetLimit) {
+      console.log("ההתראות כבויות, לא נשלחה התראה");
+      return;
+    }
+
+    // מבקש הרשאות אם אין
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") {
+      const request = await Notifications.requestPermissionsAsync();
+      if (request.status !== "granted") {
+        console.log("אין הרשאה לשליחת התראות");
+        return;
+      }
+    }
+
       const groupRef = doc(db, "groups", groupId);
       const groupSnap = await getDoc(groupRef);
 

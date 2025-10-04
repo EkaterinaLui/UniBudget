@@ -261,6 +261,7 @@ const Group = () => {
               isAdmin={isAdmin}
               navigation={navigation}
               groupId={groupId}
+              userId={userId}
               allUsers={allUsers}
               memberProgress={memberProgress}
               memberSpending={memberSpending}

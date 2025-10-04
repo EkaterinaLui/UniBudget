@@ -94,7 +94,7 @@ function AddUsers({ navigation, route }) {
 
       Alert.alert(
         "הצלחה",
-        `המשתמש "${userData.name}" נוסף לקבוצה "${groupName || "ללא שם"}"`
+        `${userData.name} נוסף/ה לקבוצה`
       );
       setUserCodeInput("");
     } catch (error) {

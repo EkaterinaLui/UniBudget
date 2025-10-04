@@ -1,6 +1,5 @@
-import React from "react";
-import { Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Dimensions, StyleSheet, Text, TouchableOpacity } from "react-native";
 import CircularProgressBar from "./CircularProgressBar";
 
 const screenWidth = Dimensions.get("window").width;
@@ -10,6 +9,7 @@ const MemberCard = ({
   isAdmin,
   navigation,
   groupId,
+  userId,
   allUsers,
   memberProgress,
   memberSpending,
@@ -30,7 +30,7 @@ const MemberCard = ({
             borderColor: colors.secondary,
           },
         ]}
-        onPress={() => navigation.navigate("AddUsers", { groupId })}
+        onPress={() => navigation.navigate("AddUsers", { groupId, userId })}
       >
         <Ionicons name="person-add" size={32} color={colors.primary} />
         <Text style={[styles.addCategoryText, { color: colors.primary }]}>
