@@ -42,7 +42,6 @@
       ],
       "expo-secure-store",
       "expo-web-browser",
-      "expo-facebook",
       "expo-localization"
     ],
     "experiments": {
