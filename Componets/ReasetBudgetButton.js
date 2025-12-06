@@ -3,9 +3,9 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
-  setDoc,
-  updateDoc,
+  setDoc
 } from "firebase/firestore";
 import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { db } from "../firebase";
@@ -16,17 +16,36 @@ const ResetBudgetsButton = ({ groupId }) => {
 
   const resetBudgets = async () => {
     try {
+      // חודש שרוצים לשמור בארכיון
       const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
+      const archiveDate = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1, // חודש הקודם
+        1
+      );
+
+      const year = archiveDate.getFullYear();
+      const month = archiveDate.getMonth() + 1; // 1..12
 
       const archiveId = getArchiveId(year, month);
 
-      const archiveRef = doc(collection(db, "groups", groupId, "archive"), archiveId);
+      const archiveRef = doc(
+        collection(db, "groups", groupId, "archive"),
+        archiveId
+      );
+
+      // שומרים תקציבים ומשתמשים
+      const groupRef = doc(db, "groups", groupId);
+      const groupSnap = await getDoc(groupRef);
+      const groupData = groupSnap.data() || {};
+
       await setDoc(archiveRef, {
         month,
         year,
         createdAt: now,
+        totalBudget: groupData.totalBudget || 0,
+        memberBudgets: groupData.memberBudgets || {},
+        members: groupData.members || [],
       });
 
       // קטגוריות
@@ -35,13 +54,12 @@ const ResetBudgetsButton = ({ groupId }) => {
       );
       for (let cat of catsSnap.docs) {
         const data = cat.data();
+
+        // שומרים בארכיון
         await setDoc(doc(collection(archiveRef, "categories"), cat.id), data);
 
-        if (data.isRegular) {
-          await updateDoc(doc(db, "groups", groupId, "categories", cat.id), {
-            budget: 0,
-          });
-        } else {
+        // אם קטגוריה קבוע משארים אם לא מוחכים
+        if (!data.isRegular) {
           await deleteDoc(doc(db, "groups", groupId, "categories", cat.id));
         }
       }
@@ -56,6 +74,18 @@ const ResetBudgetsButton = ({ groupId }) => {
           exp.data()
         );
         await deleteDoc(doc(db, "groups", groupId, "expenses", exp.id));
+      }
+
+      // חסכונות
+      const savingSnap = await getDocs(
+        collection(db, "groups", groupId, "savings") 
+      );
+      for (let s of savingSnap.docs) {
+        await setDoc(
+          doc(collection(archiveRef, "savings"), s.id),
+          s.data()
+        );
+       
       }
 
       Alert.alert("בוצע", "האיפוס הסתיים בהצלחה");

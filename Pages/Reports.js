@@ -120,37 +120,48 @@ const Report = () => {
         let expensesSnap;
         let categoriesSnap;
         let savingsSnap;
+        let totalBudget = 0;
 
-        if (
-          selectedYear === new Date().getFullYear() &&
-          monthIndex === new Date().getMonth()
-        ) {
-          // חודש נוכחי – טוען ישירות
+        const isCurrentMonth =
+          year === new Date().getFullYear() &&
+          monthIndex === new Date().getMonth();
+
+        if (isCurrentMonth) {
+          // חודש נוכחי – טוען ישירות מהקבוצה
           const expensesQ = query(
             collection(db, "groups", groupId, "expenses"),
             where("createdAt", ">=", Timestamp.fromDate(startOfMonth)),
             where("createdAt", "<=", Timestamp.fromDate(endOfMonth))
           );
           expensesSnap = await getDocs(expensesQ);
+
           categoriesSnap = await getDocs(
             collection(db, "groups", groupId, "categories")
           );
+
+          // 🔹 тут ИСПРАВЛЕНО: "savings" (как в Group.js)
           savingsSnap = await getDocs(
-            collection(db, "groups", groupId, "saving")
+            collection(db, "groups", groupId, "savings")
           );
+
+          const groupSnap = await getDoc(doc(db, "groups", groupId));
+          const groupData = groupSnap.data();
+          totalBudget = groupData?.totalBudget || 0;
         } else {
           // חודש קודם – טוען מתוך ארכיון
-          const archiveId = getArchiveId(selectedYear, monthIndex + 1);
+          const archiveId = getArchiveId(year, monthIndex + 1);
           const archiveRef = doc(db, "groups", groupId, "archive", archiveId);
 
           expensesSnap = await getDocs(collection(archiveRef, "expenses"));
           categoriesSnap = await getDocs(collection(archiveRef, "categories"));
-          savingsSnap = await getDocs(collection(archiveRef, "saving"));
-        }
 
-        const groupSnap = await getDoc(doc(db, "groups", groupId));
-        const groupData = groupSnap.data();
-        const totalBudget = groupData?.totalBudget || 0;
+          // 🔹 ИСПРАВЛЕНО: "savings", как и при сохранении в архив
+          savingsSnap = await getDocs(collection(archiveRef, "savings"));
+
+          const archiveSnap = await getDoc(archiveRef);
+          const archiveData = archiveSnap.data();
+          totalBudget = archiveData?.totalBudget || 0;
+        }
 
         allExpenses = expensesSnap.docs.map((d) => ({
           ...d.data(),
@@ -180,7 +191,7 @@ const Report = () => {
           datasets: [{ data: dailyTotals }],
         };
 
-        // קטגוריות
+        // קטגוריות (כולל חיסכון)
         const categoriesTotal = {};
         allExpenses.forEach((e) => {
           if (e.categoryId) {
@@ -207,9 +218,11 @@ const Report = () => {
               population: value,
               color:
                 category?.color ||
-                (saving ? "#2196f3" : `#${Math.floor(Math.random() * 16777215)
-                  .toString(16)
-                  .padStart(6, "0")}`),
+                (saving
+                  ? "#2196f3"
+                  : `#${Math.floor(Math.random() * 16777215)
+                      .toString(16)
+                      .padStart(6, "0")}`),
             };
           }
         );
@@ -233,9 +246,9 @@ const Report = () => {
 
         const users = {};
         const usersSnap = await getDocs(collection(db, "users"));
-        usersSnap.forEach((doc) => {
-          const data = doc.data();
-          users[doc.id] = data.name || "ללא שם";
+        usersSnap.forEach((docSnap) => {
+          const data = docSnap.data();
+          users[docSnap.id] = data.name || "ללא שם";
         });
 
         const newPieDataUsers = Object.entries(usersTotal).map(
@@ -276,7 +289,6 @@ const Report = () => {
 
     fetchData();
   }, [selectedGroup, selectedMonth, selectedYear, user]);
-
 
   return (
     <SafeAreaView
@@ -406,34 +418,34 @@ const Report = () => {
               {selectedYear}
             </Text>
           </TouchableOpacity>
-          {yearPicker && (
-            <View
-              style={[
-                styles.pickerOptions,
-                { borderColor: colors.reportBorder },
-              ]}
-            >
-              {[2023, 2024, 2025].map((year) => (
-                <TouchableOpacity
-                  key={year}
-                  style={styles.pickerItem}
-                  onPress={() => {
-                    setSelectedYear(year);
-                    setYearPicker(false);
-                  }}
+        {yearPicker && (
+          <View
+            style={[
+              styles.pickerOptions,
+              { borderColor: colors.reportBorder },
+            ]}
+          >
+            {[2023, 2024, 2025].map((year) => (
+              <TouchableOpacity
+                key={year}
+                style={styles.pickerItem}
+                onPress={() => {
+                  setSelectedYear(year);
+                  setYearPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.pickerItemText,
+                    { color: colors.reportText },
+                  ]}
                 >
-                  <Text
-                    style={[
-                      styles.pickerItemText,
-                      { color: colors.reportText },
-                    ]}
-                  >
-                    {year}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+                  {year}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         </View>
 
         {loading ? (
@@ -454,15 +466,13 @@ const Report = () => {
                 הוצאות
               </Text>
               {barData && (
-                <>
-                  <BarChart
-                    data={barData}
-                    width={screenWidth - 64}
-                    height={220}
-                    chartConfig={chartConfig}
-                    verticalLabelRotation={30}
-                  />
-                </>
+                <BarChart
+                  data={barData}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={chartConfig}
+                  verticalLabelRotation={30}
+                />
               )}
             </View>
 
@@ -567,7 +577,7 @@ const Report = () => {
                           { color: colors.reportText },
                         ]}
                       >
-                        {item.name}: {formatCurrency(item.population)}  (
+                        {item.name}: {formatCurrency(item.population)} (
                         {(
                           (item.population /
                             pieDataBalance.reduce(
@@ -626,7 +636,7 @@ const Report = () => {
                           { color: colors.reportText },
                         ]}
                       >
-                        {item.name}: {formatCurrency(item.population)}  (
+                        {item.name}: {formatCurrency(item.population)} (
                         {(
                           (item.population /
                             pieDataUsers.reduce(
@@ -727,28 +737,22 @@ const styles = StyleSheet.create({
   selector: {
     padding: 12,
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
-    backgroundColor: "#f9f9f9",
   },
   selectorText: {
     fontSize: 16,
-    color: "#333",
   },
   pickerOptions: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     marginTop: 4,
   },
   pickerItem: { padding: 12 },
   pickerItemText: { fontSize: 16 },
   card: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
-    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
@@ -773,7 +777,6 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
-    color: "#333",
   },
 });
 

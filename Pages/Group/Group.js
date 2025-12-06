@@ -140,6 +140,8 @@ const Group = () => {
   const spentAmount = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const totalProgress = totalBudget > 0 ? (spentAmount / totalBudget) * 100 : 0;
 
+  const memberBudgets = groupData?.memberBudgets || {};
+
   const memberSpending = membersData.reduce((acc, member) => {
     const memberId = member.uid || member;
     const totalSpent = expenses
@@ -269,6 +271,7 @@ const Group = () => {
               membersData={membersData}
               colors={colors}
               formatCurrency={formatCurrency}
+              memberBudgets={memberBudgets}
             />
           )}
           keyExtractor={(item, index) =>

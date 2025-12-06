@@ -104,6 +104,44 @@ const GroupInfo = () => {
     }
   };
 
+  // 🔹 פונקציה להחלפת תפקיד (אדמין / רגיל)
+  const toggleAdminRole = async () => {
+    if (!isAdmin || !selectedUser || !groupData) {
+      Alert.alert("שגיאה", "רק אדמין יכול לשנות תפקידים.");
+      return;
+    }
+
+    const isSelectedUserAdmin = groupData.adminIds?.includes(selectedUser.uid);
+    const currentAdmins = groupData.adminIds || [];
+
+    // לא נותנים להסיר את האדמין האחרון
+    if (isSelectedUserAdmin && currentAdmins.length === 1) {
+      Alert.alert("שגיאה", "לא ניתן להסיר את האדמין האחרון בקבוצה.");
+      return;
+    }
+
+    try {
+      const groupRef = doc(db, "groups", groupId);
+
+      if (isSelectedUserAdmin) {
+        // הסרת אדמין
+        await updateDoc(groupRef, {
+          adminIds: arrayRemove(selectedUser.uid),
+        });
+        Alert.alert("בוצע", `"${selectedUser.name}" הוסר מרשימת האדמינים.`);
+      } else {
+        // הוספת אדמין
+        await updateDoc(groupRef, {
+          adminIds: arrayUnion(selectedUser.uid),
+        });
+        Alert.alert("בוצע", `"${selectedUser.name}" הפך לאדמין.`);
+      }
+    } catch (error) {
+      console.error("שגיאה בעדכון תפקיד:", error);
+      Alert.alert("שגיאה", "אירעה תקלה בעדכון התפקיד.");
+    }
+  };
+
   const deleteGroup = async () => {
     if (!isAdmin) {
       Alert.alert("שגיאה", "רק אדמין יכול למחוק קבוצה.");
@@ -251,6 +289,9 @@ const GroupInfo = () => {
       </View>
     );
   }
+
+  const isSelectedUserAdmin =
+    selectedUser && groupData.adminIds?.includes(selectedUser.uid);
 
   return (
     <View
@@ -412,6 +453,39 @@ const GroupInfo = () => {
                   {selectedUser.name}
                 </Text>
 
+                {/* סטטוס תפקיד */}
+                <Text
+                  style={[
+                    styles.roleText,
+                    { color: colors.textSecondary || colors.text },
+                  ]}
+                >
+                  {isSelectedUserAdmin ? "אדמין בקבוצה" : "משתתף רגיל"}
+                </Text>
+
+                {/* החלפת תפקיד */}
+                {isAdmin && selectedUser.uid !== userId && (
+                  <TouchableOpacity
+                    style={[
+                      styles.modalButton,
+                      { backgroundColor: colors.modalButtonBackground },
+                    ]}
+                    onPress={toggleAdminRole}
+                  >
+                    
+                    <Text
+                      style={[
+                        styles.modalButtonText,
+                        { color: colors.primary },
+                      ]}
+                    >
+                      {isSelectedUserAdmin
+                        ? "הסרת הרשאת אדמין"
+                        : "הפוך לאדמין"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {/* הודעה פרטית */}
                 <TouchableOpacity
                   style={[
@@ -450,7 +524,10 @@ const GroupInfo = () => {
                       color={colors.danger}
                     />
                     <Text
-                      style={[styles.modalButtonText, { color: colors.danger }]}
+                      style={[
+                        styles.modalButtonText,
+                        { color: colors.danger },
+                      ]}
                     >
                       מחיקת משתמש
                     </Text>
@@ -563,8 +640,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: "center",
+  },
+  roleText: {
+    fontSize: 14,
+    marginBottom: 15,
   },
   modalButton: {
     flexDirection: "row",

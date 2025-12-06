@@ -32,6 +32,10 @@ const GroupBudget = () => {
   const [newBudget, setNewBudget] = useState("");
   const [promptVisible, setPromptVisible] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [budgetMode, setBudgetMode] = useState("total"); 
+  const [memberBudgets, setMemberBudgets] = useState([]); 
+
+  const isFamilyGroup = groupData?.type === "family";
 
   useEffect(() => {
     if (!groupId) return;
@@ -45,7 +49,33 @@ const GroupBudget = () => {
         const data = docSnap.data();
         setGroupData(data);
         setIsAdmin(data.adminIds?.includes(userId));
+
+        // שמירת תקציב כללי משותף
         setNewBudget(data.totalBudget ? String(data.totalBudget) : "");
+
+        // תקציב לפי משתמש – רק לקבוצות מסוג משפחה
+        if (data.type === "family" && data.memberBudgets) {
+          setBudgetMode("perMember");
+          const arr = [];
+
+          if (data.members) {
+            for (let i = 0; i < data.members.length; i++) {
+              const m = data.members[i];
+              const value = data.memberBudgets[m.uid];
+
+              if (value !== undefined && value !== null) {
+                arr.push(String(value));
+              } else {
+                arr.push("");
+              }
+            }
+          }
+
+          setMemberBudgets(arr);
+        } else {
+          setBudgetMode("total");
+          setMemberBudgets([]);
+        }
       }
     });
 
@@ -70,7 +100,7 @@ const GroupBudget = () => {
   const totalBudget = groupData?.totalBudget || 0;
   const remainingBudget = totalBudget - spentAmount;
 
-  const handleUpdateBudget = () => {
+  const updateBudget = () => {
     if (!isAdmin) {
       Alert.alert("שגיאה", "רק מנהל יכול לשנות תקציב.");
       return;
@@ -78,37 +108,116 @@ const GroupBudget = () => {
     setPromptVisible(true);
   };
 
-  const handleSaveBudget = async (value) => {
-    const parsedBudget = parseFloat(value);
-    if (isNaN(parsedBudget) || parsedBudget < 0) {
-      Alert.alert("שגיאה", "נא להזין מספר תקין.");
-      return;
-    }
+  const saveBudget = async () => {
+    if (!groupId) return;
+
+    const groupRef = doc(db, "groups", groupId);
 
     const categoriesSum = categories.reduce(
       (sum, cat) => sum + (cat.budget || 0),
       0
     );
-    if (parsedBudget < categoriesSum) {
+
+    // בדיקה שזה קבוצה מסוג משפחה
+    if (budgetMode === "perMember" && !isFamilyGroup) {
+      Alert.alert("שגיאה", "תקציב לפי משתמש זמין רק לקבוצות משפחתיות.");
+      return;
+    }
+
+    // תקציב כללי
+    if (budgetMode === "total" || !isFamilyGroup) {
+      const parsedBudget = parseFloat(newBudget);
+      if (isNaN(parsedBudget) || parsedBudget < 0) {
+        Alert.alert("שגיאה", "נא להזין מספר תקין.");
+        return;
+      }
+      if (parsedBudget < categoriesSum) {
+        Alert.alert(
+          "שגיאה",
+          `התקציב הכולל חייב להיות לפחות ${formatCurrency(
+            categoriesSum.toFixed(2)
+          )}, 
+        כי זה סכום התקציבים של כל הקטגוריות.`
+        );
+        return;
+      }
+      try {
+        await updateDoc(groupRef, {
+          totalBudget: parsedBudget,
+          memberBudgets: {}, // מנקים תקציב כללי
+        });
+        Alert.alert("הצלחה", "התקציב עודכן בהצלחה!");
+      } catch (error) {
+        console.log("שגיאה בעדכון תקציב:", error);
+        Alert.alert("שגיאה", "עדכון התקציב נכשל.");
+      }
+
+      setPromptVisible(false);
+      return;
+    }
+
+    // תקציב לפי משתמש (רק family)
+    if (!groupData || !groupData.members || groupData.members.length === 0) {
+      Alert.alert("שגיאה", "אין משתמשים בקבוצה.");
+      return;
+    }
+
+    const budgets = {};
+    let totalMemBud = 0;
+
+    for (let i = 0; i < groupData.members.length; i++) {
+      const member = groupData.members[i];
+      const tValue = memberBudgets[i] || 0;
+      const num = parseFloat(tValue);
+
+      if (isNaN(num) || num < 0) {
+        Alert.alert(
+          "שגיאה",
+          `נא להזין תקציב תקין עבור ${member.name || "משתמש"}.`
+        );
+        return;
+      }
+
+      budgets[member.uid] = num;
+      totalMemBud = totalMemBud + num;
+    }
+
+    if (totalMemBud <= 0) {
+      Alert.alert("שגיאה", "סך התקציבים למשתמשים חייב להיות גדול מאפס.");
+      return;
+    }
+
+    if (totalMemBud < categoriesSum) {
       Alert.alert(
         "שגיאה",
-        `התקציב הכולל חייב להיות לפחות ${formatCurrency(
+        `סך התקציבים למשתמשים חייב להיות לפחות ${formatCurrency(
           categoriesSum.toFixed(2)
         )}, 
-          כי זה סכום התקציבים של כל הקטגוריות.`
+        כי זה סכום התקציבים של כל הקטגוריות.`
       );
       return;
     }
 
     try {
-      const groupRef = doc(db, "groups", groupId);
-      await updateDoc(groupRef, { totalBudget: parsedBudget });
-      Alert.alert("הצלחה", "התקציב עודכן בהצלחה!");
+      await updateDoc(groupRef, {
+        totalBudget: totalMemBud,
+        memberBudgets: budgets,
+      });
+      Alert.alert("הצלחה", "התקציב לפי משתמש עודכן בהצלחה!");
     } catch (err) {
-      console.error("שגיאה בעדכון תקציב:", err);
-      Alert.alert("שגיאה", "עדכון התקציב נכשל.");
+      console.log("שגיאה בעדכון תקציב לפי משתמש:", err);
+      Alert.alert("שגיאה", "עדכון התקציב לפי משתמש נכשל.");
     }
+
     setPromptVisible(false);
+  };
+
+  const changeMemBud = (index, text) => {
+    setMemberBudgets((prev) => {
+      const newArr = [...prev]; 
+      newArr[index] = text;
+      return newArr;
+    });
   };
 
   return (
@@ -167,7 +276,7 @@ const GroupBudget = () => {
                 styles.setBudgetButton,
                 { backgroundColor: colors.buttonPrimary },
               ]}
-              onPress={handleUpdateBudget}
+              onPress={updateBudget}
             >
               <Ionicons name="wallet-outline" size={20} color="#fff" />
               <Text style={[styles.setBudgetButtonText, { color: "#fff" }]}>
@@ -223,18 +332,108 @@ const GroupBudget = () => {
             <View
               style={[styles.modalContent, { backgroundColor: colors.card }]}
             >
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                הזן תקציב חדש
-              </Text>
-              <TextInput
-                style={[
-                  styles.modalInput,
-                  { borderColor: colors.modalInputBorder, color: colors.text },
-                ]}
-                value={newBudget}
-                onChangeText={setNewBudget}
-                keyboardType="numeric"
-              />
+              {/* מחליף בין תקציב כללי לתקציב לפי משתמש*/}
+              {isFamilyGroup && (
+                <View style={styles.budgetModeSwitcher}>
+                  <TouchableOpacity
+                    style={[
+                      styles.budgetModeButton,
+                      budgetMode === "total" && styles.budgetModeButtonActive,
+                    ]}
+                    onPress={() => setBudgetMode("total")}
+                  >
+                    <Text
+                      style={[
+                        styles.budgetModeText,
+                        budgetMode === "total" && styles.budgetModeTextActive,
+                      ]}
+                    >
+                      תקציב חודשי כולל
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.budgetModeButton,
+                      budgetMode === "perMember" &&
+                        styles.budgetModeButtonActive,
+                    ]}
+                    onPress={() => setBudgetMode("perMember")}
+                  >
+                    <Text
+                      style={[
+                        styles.budgetModeText,
+                        budgetMode === "perMember" &&
+                          styles.budgetModeTextActive,
+                      ]}
+                    >
+                      תקציב לפי משתמש
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* תקציב כללי */}
+              {(!isFamilyGroup || budgetMode === "total") && (
+                <>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    הזן תקציב חדש
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.modalInput,
+                      {
+                        borderColor: colors.modalInputBorder,
+                        color: colors.text,
+                      },
+                    ]}
+                    value={newBudget}
+                    onChangeText={setNewBudget}
+                    keyboardType="numeric"
+                  />
+                </>
+              )}
+
+              {/* רק לקבוצה מסוג משפחה*/}
+              {isFamilyGroup && budgetMode === "perMember" && (
+                <>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    תקציב לכל משתמש
+                  </Text>
+                  <ScrollView
+                    style={{ maxHeight: 250, width: "100%" }}
+                    nestedScrollEnabled
+                  >
+                    {groupData?.members?.map((member, index) => (
+                      <View key={member.uid} style={styles.memberBudgetRow}>
+                        <Text
+                          style={[
+                            styles.memberBudgetName,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {member.name || "משתמש"}
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.memberBudgetInput,
+                            {
+                              borderColor: colors.modalInputBorder,
+                              color: colors.text,
+                            },
+                          ]}
+                          value={memberBudgets[index] || ""}
+                          onChangeText={(text) =>
+                            changeMemBud(index, text)
+                          }
+                          keyboardType="numeric"
+                        />
+                      </View>
+                    ))}
+                  </ScrollView>
+                </>
+              )}
+
               <View style={styles.modalButtons}>
                 <TouchableOpacity
                   style={[
@@ -250,7 +449,7 @@ const GroupBudget = () => {
                     styles.modalButton,
                     { backgroundColor: colors.buttonPrimary },
                   ]}
-                  onPress={() => handleSaveBudget(newBudget)}
+                  onPress={saveBudget}
                 >
                   <Text style={{ color: colors.buttonText }}>שמור</Text>
                 </TouchableOpacity>
@@ -356,7 +555,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)", 
+    backgroundColor: "rgba(0,0,0,0.5)",
     width: "100%",
     height: "100%",
   },
@@ -391,6 +590,51 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginHorizontal: 5,
+  },
+  budgetModeSwitcher: {
+    flexDirection: "row",
+    marginBottom: 15,
+    width: "100%",
+  },
+  budgetModeButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginHorizontal: 4,
+    alignItems: "center",
+  },
+  budgetModeButtonActive: {
+    backgroundColor: "#0077B6",
+    borderColor: "#0077B6",
+  },
+  budgetModeText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  budgetModeTextActive: {
+    color: "#fff",
+  },
+
+
+  memberBudgetRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    justifyContent: "space-between",
+  },
+  memberBudgetName: {
+    fontSize: 14,
+    flex: 1,
+    marginLeft: 10,
+  },
+  memberBudgetInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    width: 200,
+    fontSize: 14,
   },
 });
 

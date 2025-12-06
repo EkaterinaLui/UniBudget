@@ -25,7 +25,9 @@ const colorOptions = [
   "#F1C40F",
   "#9B59B6",
   "#1ABC9C",
-  "#E74C3C",
+  "#882f25ff",
+  "#909090ff",
+  "#000000ff",
 ];
 const iconOptions = [
   "fast-food-outline",
@@ -40,6 +42,8 @@ const iconOptions = [
   "bulb-outline",
   "pricetag-outline",
   "wallet-outline",
+  "film-outline",
+  "paw-outline"
 ];
 
 const CreateCategory = () => {
@@ -83,6 +87,8 @@ const CreateCategory = () => {
         data.notes = notes;
         data.eventStartDate = Timestamp.fromDate(new Date());
         data.eventEndDate = Timestamp.fromDate(expiryDate);
+        data.eventEndDate = Timestamp.fromDate(expiryDate);
+        data.budget = Number(budget) || 0;
       } else {
         // קטגוריה רגילה – תקציב
         data.budget = Number(budget) || 0;
@@ -106,6 +112,18 @@ const CreateCategory = () => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
+       <TouchableOpacity
+              style={[
+                styles.backButton,
+                {
+                  backgroundColor: colors.card,
+                  shadowColor: colors.shadow,
+                },
+              ]}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-forward" size={24} color={colors.text} />
+            </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>
           {isTemporary ? "צור קטגוריה מיוחדת" : "צור קטגוריה רגילה"}
         </Text>
@@ -123,7 +141,6 @@ const CreateCategory = () => {
         />
 
         {/* קטגוריה רגילה */}
-        {!isTemporary && (
           <TextInput
             placeholder="תקציב"
             placeholderTextColor={colors.textSecondary}
@@ -135,7 +152,7 @@ const CreateCategory = () => {
             onChangeText={setBudget}
             keyboardType="numeric"
           />
-        )}
+      
 
         {/* קטגוריה מיוחדת */}
         {isTemporary && (
@@ -252,6 +269,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
     marginTop: 40,
+  },
+  backButton: {
+    marginTop: 50,
+    position: "absolute",
+    left: 20,
+    zIndex: 10,
+    borderRadius: 50,
+    padding: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 4,
   },
   input: {
     borderWidth: 1,

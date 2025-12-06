@@ -17,6 +17,7 @@ const MemberCard = ({
   membersData,
   colors,
   formatCurrency,
+  memberBudgets
 }) => {
   if (item.isAddButton) {
     if (!isAdmin) return null;
@@ -45,6 +46,17 @@ const MemberCard = ({
   const spent = memberSpending[memberId] || 0;
   const memberName = item.name || allUsers[memberId] || `משתמש (${memberId})`;
 
+  // תקציב למשתמש
+  let memberBudget = 0;
+
+  if (memberBudgets && memberBudgets[memberId] !== undefined) {
+    // אם בבסיס נתונים שמור תקציב אישי
+    memberBudget = memberBudgets[memberId];
+  } else if (totalBudget && membersData && membersData.length > 0) {
+    // אם לא חלוקה של תקציב כללי לפי כל המשתמשים
+    memberBudget = totalBudget / membersData.length;
+  }
+
   return (
     <TouchableOpacity
       key={memberId}
@@ -64,8 +76,7 @@ const MemberCard = ({
         {memberName}
       </Text>
       <Text style={[styles.memberAmount, { color: colors.secondary }]}>
-        {formatCurrency(spent)} /{" "}
-        {formatCurrency(totalBudget / membersData.length)}
+        {formatCurrency(spent)} / {formatCurrency(memberBudget)}
       </Text>
     </TouchableOpacity>
   );
