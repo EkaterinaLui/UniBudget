@@ -19,7 +19,7 @@
         "backgroundImage": "./assets/UB.png",
         "monochromeImage": "./assets/UB.png"
       },
-      "googleServicesFile": "./google-services.json",
+     // "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.ekaterinalui.UniBudget"
@@ -42,7 +42,8 @@
       ],
       "expo-secure-store",
       "expo-web-browser",
-      "expo-facebook"
+      "expo-facebook",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
