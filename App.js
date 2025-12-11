@@ -11,7 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { SettingsContext, SettingsProvider } from "./Utilities/SettingsContext";
 import { CustomDarkTheme, CustomLightTheme } from "./Utilities/Theme";
 
@@ -78,6 +78,7 @@ async function registerForPushNotificationsAsync(userId) {
 
 function AppContent({ user, userId, locked, setLocked, userRole, isBlocked }) {
   const { settings } = useContext(SettingsContext);
+   const insets = useSafeAreaInsets();
 
   const navigationTheme =
     settings.theme === "dark" ? CustomDarkTheme : CustomLightTheme;
@@ -110,6 +111,9 @@ function AppContent({ user, userId, locked, setLocked, userRole, isBlocked }) {
                 ...styles.tabBar,
                 backgroundColor: colors.tabBackground,
                 borderTopColor: colors.border,
+
+                paddingBottom: (insets.bottom || 0) + 8,
+                height: 53 + (insets.bottom || 0),
               },
               tabBarIcon: ({ color, size }) => {
                 const icons = {
@@ -255,7 +259,7 @@ function App() {
   return (
     <Error>
       <SafeAreaProvider>
-        <SettingsProvider>
+        <SettingsProvider userId={userId}>
           <AppContent
             user={user}
             userId={userId}
@@ -273,7 +277,6 @@ function App() {
 const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth: 0,
-    height: 72,
     paddingTop: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },

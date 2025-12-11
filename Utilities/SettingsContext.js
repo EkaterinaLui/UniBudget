@@ -1,36 +1,56 @@
-import React, { createContext, useEffect, useState} from "react";
+import { createContext, useEffect, useState } from "react";
 import { loadSettings, saveSettings } from "./ServiceSettings";
 
 export const SettingsContext = createContext();
 
-export function SettingsProvider({ children }){
-    const [settings, setSettings] = useState({
-        theme: "light",
-        currency: "₪",
-    });
-    const [loading, setLoading] = useState(true);
+const defaultSettings = {
+  theme: "light",
+  currency: "₪",
+};
 
-    //טעינת הגדרות
+export function SettingsProvider({ children, userId }) {
+  const [settings, setSettings] = useState(defaultSettings);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        (async() =>{
-            const s = await loadSettings();
-            if(s){
-                setSettings((prev) => ({ ...prev, ...s}));
-            }
-            setLoading(false);
-        })();
-    },[]);
+  //טעינת הגדרות
 
-    //עדכון הגדרות
-    const updateSettings = async (newSettings) =>{
-        setSettings((prev) => ({ ...prev, ...newSettings}));
-        await saveSettings({ ...settings, ...newSettings});
+  useEffect(() => {
+      if (!userId) {
+      setSettings(defaultSettings);
+      setLoading(false);
+      return;
     }
 
-    return (
-        <SettingsContext.Provider value={{settings, updateSettings, loading}}>
-            {children}
-        </SettingsContext.Provider>
-    );
+    setLoading(true);
+
+    (async () => {
+      try {
+        const s = await loadSettings(userId);
+        if (s) {
+          setSettings((prev) => ({ ...prev, ...s }));
+        }
+      } catch (e) {
+        console.log("Error loading settings:", e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [userId]);
+
+  //עדכון הגדרות
+  const updateSettings = async (newSettings) => {
+    setSettings((prev) => {
+      const merged = { ...prev, ...newSettings };
+      saveSettings(merged, userId).catch((e) =>
+        console.log("Error saving settings:", e)
+      );
+      return merged;
+    });
+  };
+
+  return (
+    <SettingsContext.Provider value={{ settings, updateSettings, loading }}>
+      {children}
+    </SettingsContext.Provider>
+  );
 }

@@ -9,27 +9,33 @@ import {
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions
 } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { db } from "../../firebase";
 import { useCurrency } from "../../Utilities/Currency";
 
-const screenWidth = Dimensions.get("window").width;
-
 const UsersDetails = () => {
   const route = useRoute();
   const { groupId, memberId, memberName } = route.params || {};
   const navigation = useNavigation();
+  const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const formatCurrency = useCurrency();
+
+  //הגדרות קבועות למסכים שונים
+  const CARD_MARGIN_H = 20;
+  const CARD_PADDING_H = 15;
+
+  const chartWidth =
+    screenWidth - (CARD_MARGIN_H + CARD_PADDING_H) * 2 - insets.left - insets.right;
 
   const [memberExpenses, setMemberExpenses] = useState([]);
   const [categories, setCategories] = useState({});
@@ -114,6 +120,7 @@ const UsersDetails = () => {
         {
           backgroundColor: colors.userDetailsBackground,
           paddingTop: insets.top,
+          paddingBottom: insets.bottom + 10,
         },
       ]}
     >
@@ -158,6 +165,7 @@ const UsersDetails = () => {
         </Text>
         {pieData.length > 0 ? (
           <>
+           <View style={styles.chartWrapper}>
             <PieChart
               data={pieData.map((c) => ({
                 name: c.name,
@@ -166,14 +174,15 @@ const UsersDetails = () => {
                 legendFontColor: colors.userDetailsText,
                 legendFontSize: c.legendFontSize,
               }))}
-              width={screenWidth - 40}
+              width={chartWidth}
               height={200}
               chartConfig={{ color: () => "#333" }}
               accessor="population"
               backgroundColor="transparent"
-              paddingLeft="15"
-              hasLegend={false}
-            />
+              paddingLeft="0"
+              center={[0, 0]} 
+              />
+            </View>
             {pieData.map((c, idx) => (
               <View key={idx} style={styles.categoryRow}>
                 <View style={[styles.colorDot, { backgroundColor: c.color }]} />
@@ -283,6 +292,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
+  chartWrapper: {
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 10,
+},
   chartCard: {
     marginHorizontal: 20,
     borderRadius: 10,

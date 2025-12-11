@@ -155,6 +155,32 @@ const GroupInfo = () => {
         style: "destructive",
         onPress: async () => {
           try {
+            const archiveRef = collection(db, "groups", groupId, "archive");
+            const archiveSnap = await getDocs(archiveRef);
+
+            for (const archiveDoc of archiveSnap.docs) {
+              const archiveId = archiveDoc.id;
+
+              // תתי־אוספים בתוך הארכיון
+              const nestedSubs = ["categories", "expenses", "savings"];
+
+              for (const sub of nestedSubs) {
+                const nestedRef = collection(
+                  db,
+                  "groups",
+                  groupId,
+                  "archive",
+                  archiveId,
+                  sub
+                );
+                const nestedSnap = await getDocs(nestedRef);
+                await Promise.all(nestedSnap.docs.map((d) => deleteDoc(d.ref)));
+              }
+
+              // מוחקים את מסמך הארכיון עצמו
+              await deleteDoc(doc(db, "groups", groupId, "archive", archiveId));
+            }
+            //מוחקים שאר תתי-האיסופים
             const subcollections = [
               "archive",
               "categories",
@@ -162,7 +188,7 @@ const GroupInfo = () => {
               "settledDebts",
               "messages",
               "reports",
-              "saving",
+              "savings",
             ];
 
             for (const sub of subcollections) {
@@ -170,7 +196,7 @@ const GroupInfo = () => {
               const snapshot = await getDocs(subRef);
               await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
             }
-
+            //מוחקים מסמך של קבוצה
             await deleteDoc(doc(db, "groups", groupId));
             Alert.alert("בוצע", "הקבוצה וכל הנתונים נמחקו.");
             navigation.popToTop();
@@ -472,16 +498,13 @@ const GroupInfo = () => {
                     ]}
                     onPress={toggleAdminRole}
                   >
-                    
                     <Text
                       style={[
                         styles.modalButtonText,
                         { color: colors.primary },
                       ]}
                     >
-                      {isSelectedUserAdmin
-                        ? "הסרת הרשאת אדמין"
-                        : "הפוך לאדמין"}
+                      {isSelectedUserAdmin ? "הסרת הרשאת אדמין" : "הפוך לאדמין"}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -524,10 +547,7 @@ const GroupInfo = () => {
                       color={colors.danger}
                     />
                     <Text
-                      style={[
-                        styles.modalButtonText,
-                        { color: colors.danger },
-                      ]}
+                      style={[styles.modalButtonText, { color: colors.danger }]}
                     >
                       מחיקת משתמש
                     </Text>

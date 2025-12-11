@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { db } from "../../firebase";
+import { budgetExceeded } from "../../Utilities/groupNotific";
 import { SettingsContext } from "../../Utilities/SettingsContext";
 
 const AddExpenses = () => {
@@ -86,10 +87,7 @@ const AddExpenses = () => {
     const settingsData = settingsSnap.exists() ? settingsSnap.data() : null;
 
     // בדיקה האם בכלל ההתרעה פעילה
-    if (!settingsData?.notifications?.budgetLimit) {
-      console.log("ההתראות כבויות, לא נשלחה התראה");
-      return;
-    }
+    if (!settingsData?.notifications?.budgetLimit)  return;
 
     // מבקש הרשאות אם אין
     const { status } = await Notifications.getPermissionsAsync();
@@ -117,13 +115,11 @@ const AddExpenses = () => {
       );
 
       if (totalExpenses > (groupData.totalBudget || 0)) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: " חריגה מתקציב הקבוצה",
-            body: "סכום ההוצאות עבר את גבול התקציב הכולל!",
-          },
-          trigger: null, // מיידי
-        });
+        await budgetExceeded(
+          db,
+          groupId,
+          "סכום ההוצאות עבר את גבול התקציב הכולל!"
+        );
       }
 
       // בדיקה לקטגוריה
@@ -143,22 +139,20 @@ const AddExpenses = () => {
           .reduce((sum, e) => sum + (e.data().amount || 0), 0);
 
         if (catExpenses > (catData.budget || 0)) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: `חריגה בקטגוריה "${catData.name}"`,
-              body: "הוצאות הקטגוריה עברו את התקציב שלה!",
-            },
-            trigger: null,
-          });
+           await budgetExceeded(
+              db,
+              groupId,
+              `הוצאות בקטגוריה "${catData.name}" עברו את התקציב שלה!`
+            );
         }
       }
-    } catch (err) {
-      console.error("שגיאה בבדיקת חריגה:", err);
+    } catch (error) {
+      console.error("שגיאה בבדיקת חריגה:", error);
     }
   };
 
   //  שמירה של ההוצאה
-  const handleAddExpense = async () => {
+  const addExpense = async () => {
     if (!amount || isNaN(parseFloat(amount))) {
       Alert.alert("שגיאה", "אנא הזן סכום תקין.");
       return;
@@ -247,7 +241,7 @@ const AddExpenses = () => {
         {/* כפתור שמירה */}
         <TouchableOpacity
           style={[styles.button, isSaving && styles.buttonDisabled]}
-          onPress={handleAddExpense}
+          onPress={addExpense}
           disabled={isSaving}
         >
           <Text style={styles.buttonText}>

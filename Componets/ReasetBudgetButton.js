@@ -5,7 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
-  setDoc
+  setDoc,
 } from "firebase/firestore";
 import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { db } from "../firebase";
@@ -58,10 +58,37 @@ const ResetBudgetsButton = ({ groupId }) => {
         // שומרים בארכיון
         await setDoc(doc(collection(archiveRef, "categories"), cat.id), data);
 
-        // אם קטגוריה קבוע משארים אם לא מוחכים
-        if (!data.isRegular) {
-          await deleteDoc(doc(db, "groups", groupId, "categories", cat.id));
+        const catRef = doc(db, "groups", groupId, "categories", cat.id);
+
+        const isRegular = data.isRegular === true;
+        const isTemporary = data.isTemporary === true;
+
+        if (isRegular) {
+       //קטגוריות קבועות נשארות עם תקציב הוגדר
+          continue;
         }
+
+        if (isTemporary) {
+          let endDate = null;
+
+          if (data.eventEndDate?.toDate) {
+            endDate = data.eventEndDate.toDate();
+          } else if (data.eventEndDate instanceof Date) {
+            endDate = data.eventEndDate;
+          }
+
+          const nowDate = new Date();
+
+          // אם פג תוקף - מוחקים
+          if (endDate && endDate < nowDate) {
+            await deleteDoc(catRef);
+          }
+          // אם עדיין בתוקף - משאירים
+          continue;
+        }
+
+        // כל מה שלא קבוע ולא זמני – מוחקים
+        await deleteDoc(catRef);
       }
 
       // הוצאות
@@ -78,14 +105,10 @@ const ResetBudgetsButton = ({ groupId }) => {
 
       // חסכונות
       const savingSnap = await getDocs(
-        collection(db, "groups", groupId, "savings") 
+        collection(db, "groups", groupId, "savings")
       );
       for (let s of savingSnap.docs) {
-        await setDoc(
-          doc(collection(archiveRef, "savings"), s.id),
-          s.data()
-        );
-       
+        await setDoc(doc(collection(archiveRef, "savings"), s.id), s.data());
       }
 
       Alert.alert("בוצע", "האיפוס הסתיים בהצלחה");
