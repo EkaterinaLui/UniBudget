@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { SettingsContext, SettingsProvider } from "./Utilities/SettingsContext";
 import { CustomDarkTheme, CustomLightTheme } from "./Utilities/Theme";
@@ -258,6 +259,7 @@ function App() {
 
   return (
     <Error>
+       <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SettingsProvider userId={userId}>
           <AppContent
@@ -270,6 +272,7 @@ function App() {
           />
         </SettingsProvider>
       </SafeAreaProvider>
+      </GestureHandlerRootView>
     </Error>
   );
 }

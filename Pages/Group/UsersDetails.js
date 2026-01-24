@@ -4,6 +4,7 @@ import {
   collection,
   getDocs,
   onSnapshot,
+  orderBy,
   query,
   where,
 } from "firebase/firestore";
@@ -46,7 +47,8 @@ const UsersDetails = () => {
 
     const expensesQuery = query(
       collection(db, "groups", groupId, "expenses"),
-      where("userId", "==", memberId)
+      where("userId", "==", memberId),
+      orderBy("createdAt", "desc")
     );
 
     const unsub = onSnapshot(expensesQuery, (snapshot) => {
@@ -175,12 +177,13 @@ const UsersDetails = () => {
                 legendFontSize: c.legendFontSize,
               }))}
               width={chartWidth}
-              height={200}
+              height={160}
               chartConfig={{ color: () => "#333" }}
               accessor="population"
               backgroundColor="transparent"
               paddingLeft="0"
               center={[0, 0]} 
+              hasLegend={false}
               />
             </View>
             {pieData.map((c, idx) => (
@@ -217,7 +220,7 @@ const UsersDetails = () => {
         הוצאות אחרונות
       </Text>
       <FlatList
-        data={memberExpenses.slice(0, 5)}
+        data={memberExpenses}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
           const formattedDate = formatDate(item.createdAt);
@@ -304,6 +307,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 3,
+    overflow: "hidden",
   },
   sectionTitle: {
     fontSize: 18,

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRoute, useTheme } from "@react-navigation/native";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
+import { addDoc, collection, getDocs, Timestamp } from "firebase/firestore";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -43,7 +43,7 @@ const iconOptions = [
   "pricetag-outline",
   "wallet-outline",
   "film-outline",
-  "paw-outline"
+  "paw-outline",
 ];
 
 const CreateCategory = () => {
@@ -59,7 +59,6 @@ const CreateCategory = () => {
   const [selectedIcon, setSelectedIcon] = useState(iconOptions[0]);
   const [loading, setLoading] = useState(false);
 
-  //  תוקף
   const [expiryDate, setExpiryDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
@@ -73,24 +72,27 @@ const CreateCategory = () => {
     setLoading(true);
 
     try {
+      const categoriesSnap = await getDocs(
+        collection(db, "groups", groupId, "categories"),
+      );
+      const nextOrder = categoriesSnap.size;
+
       const data = {
         name,
         icon: selectedIcon,
         color: selectedColor,
-        isTemporary, 
+        isTemporary,
         isRegular: false,
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
+        order: nextOrder,
       };
 
       if (isTemporary) {
-        // קטגוריה מיוחדת – הערות + תוקף
         data.notes = notes;
-        data.eventStartDate = Timestamp.fromDate(new Date());
-        data.eventEndDate = Timestamp.fromDate(expiryDate);
+        data.eventStartDate = Timestamp.now();
         data.eventEndDate = Timestamp.fromDate(expiryDate);
         data.budget = Number(budget) || 0;
       } else {
-        // קטגוריה רגילה – תקציב
         data.budget = Number(budget) || 0;
       }
 
@@ -112,23 +114,23 @@ const CreateCategory = () => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
-       <TouchableOpacity
-              style={[
-                styles.backButton,
-                {
-                  backgroundColor: colors.card,
-                  shadowColor: colors.shadow,
-                },
-              ]}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-forward" size={24} color={colors.text} />
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: colors.card,
+              shadowColor: colors.shadow,
+            },
+          ]}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-forward" size={24} color={colors.text} />
+        </TouchableOpacity>
+
         <Text style={[styles.title, { color: colors.text }]}>
           {isTemporary ? "צור קטגוריה מיוחדת" : "צור קטגוריה רגילה"}
         </Text>
 
-        {/* שם */}
         <TextInput
           placeholder="שם הקטגוריה"
           placeholderTextColor={colors.textSecondary}
@@ -140,21 +142,18 @@ const CreateCategory = () => {
           onChangeText={setName}
         />
 
-        {/* קטגוריה רגילה */}
-          <TextInput
-            placeholder="תקציב"
-            placeholderTextColor={colors.textSecondary}
-            style={[
-              styles.input,
-              { borderColor: colors.border, color: colors.text },
-            ]}
-            value={budget}
-            onChangeText={setBudget}
-            keyboardType="numeric"
-          />
-      
+        <TextInput
+          placeholder="תקציב"
+          placeholderTextColor={colors.textSecondary}
+          style={[
+            styles.input,
+            { borderColor: colors.border, color: colors.text },
+          ]}
+          value={budget}
+          onChangeText={setBudget}
+          keyboardType="numeric"
+        />
 
-        {/* קטגוריה מיוחדת */}
         {isTemporary && (
           <>
             <TextInput
@@ -169,7 +168,6 @@ const CreateCategory = () => {
               multiline
             />
 
-            {/* בחירת תוקף */}
             <TouchableOpacity
               onPress={() => setShowPicker(true)}
               style={[styles.input, { justifyContent: "center" }]}
@@ -194,7 +192,6 @@ const CreateCategory = () => {
           </>
         )}
 
-        {/* צבע */}
         <Text style={{ marginTop: 20, marginBottom: 10, color: colors.text }}>
           בחר צבע:
         </Text>
@@ -214,7 +211,6 @@ const CreateCategory = () => {
           )}
         />
 
-        {/* אייקון */}
         <Text style={{ marginTop: 20, marginBottom: 10, color: colors.text }}>
           בחר אייקון:
         </Text>
@@ -242,7 +238,6 @@ const CreateCategory = () => {
           )}
         />
 
-        {/* שמירה */}
         <TouchableOpacity
           style={[styles.button, { backgroundColor: selectedColor }]}
           onPress={handleSave}
@@ -260,9 +255,7 @@ const CreateCategory = () => {
 };
 
 const styles = StyleSheet.create({
-  scroll: {
-    padding: 20,
-  },
+  scroll: { padding: 20 },
   title: {
     fontSize: 24,
     fontWeight: "bold",

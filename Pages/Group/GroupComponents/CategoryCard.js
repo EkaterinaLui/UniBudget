@@ -18,9 +18,13 @@ const CategoryCard = ({
   colors,
   formatCurrency,
   isAdmin,
+  onLongPress,
+  disabled,
 }) => {
+  // כפתור "הוספה" רגיל - רק למנהל
   if (item.isAddButton && !item.isTemporaryAddButton) {
     if (!isAdmin) return null;
+
     return (
       <TouchableOpacity
         style={[
@@ -33,9 +37,10 @@ const CategoryCard = ({
         onPress={() =>
           navigation.navigate("CreateCategory", {
             groupId,
-            isTemporary: item.isTemporaryAddButton,
+            isTemporary: false,
           })
         }
+        activeOpacity={0.85}
       >
         <Ionicons name="add" size={32} color={colors.secondary} />
         <Text style={[styles.addCategoryText, { color: colors.primary }]}>
@@ -45,6 +50,7 @@ const CategoryCard = ({
     );
   }
 
+  // כפתור "הוספה" זמני - לכל אחד
   if (item.isAddButton && item.isTemporaryAddButton) {
     return (
       <TouchableOpacity
@@ -56,8 +62,12 @@ const CategoryCard = ({
           },
         ]}
         onPress={() =>
-          navigation.navigate("CreateCategory", { groupId, isTemporary: true })
+          navigation.navigate("CreateCategory", {
+            groupId,
+            isTemporary: true,
+          })
         }
+        activeOpacity={0.85}
       >
         <Ionicons name="add" size={32} color={colors.primary} />
         <Text style={[styles.addCategoryText, { color: colors.primary }]}>
@@ -67,7 +77,7 @@ const CategoryCard = ({
     );
   }
 
-  // בדיקת תוקף קטגוריה
+  // בדיקת תוקף קטגוריה מיוחדת
   const isExpired =
     item.isTemporary && item.eventEndDate
       ? (item.eventEndDate.toDate
@@ -76,15 +86,20 @@ const CategoryCard = ({
       : false;
 
   // בדיקת חריגה מהתקציב
-  const isOverBudget = item.spentAmount > (item.budget || 0);
+  const budget = Number(item.budget || 0);
+  const spent = Number(item.spentAmount || 0);
 
-  const progress = (item.spentAmount / (item.budget || 1)) * 100;
+  const isOverBudget = spent > budget;
+
+  // אחוז התקדמות (אם budget=0 לא יזרוק NaN)
+  const progress = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
 
   return (
     <TouchableOpacity
       style={[
         styles.categoryCard,
         { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        disabled ? { opacity: 0.85 } : null,
       ]}
       onPress={() =>
         navigation.navigate("CategoryDetails", {
@@ -95,20 +110,26 @@ const CategoryCard = ({
           allUsers,
         })
       }
+      onLongPress={onLongPress}
+      delayLongPress={200}
+      disabled={disabled}
+      activeOpacity={0.9}
     >
       <Ionicons
         name={item.icon || "folder-outline"}
         size={32}
         color={item.color || colors.primary}
       />
+
       <Text style={[styles.categoryCardName, { color: colors.text }]}>
         {item.name}
       </Text>
+
       <Text style={[styles.categoryCardAmount, { color: colors.secondary }]}>
-        {formatCurrency(item.spentAmount)} / {formatCurrency(item.budget)}
+        {formatCurrency(spent)} / {formatCurrency(budget)}
       </Text>
 
-      {/* הוצאות באחוזים לפי קטדוריה */}
+      {/* פס התקדמות */}
       <View
         style={[
           styles.categoryCardProgressBar,

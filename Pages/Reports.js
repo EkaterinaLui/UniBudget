@@ -25,6 +25,8 @@ import { auth, db } from "../firebase";
 import { useCurrency } from "../Utilities/Currency";
 import { getArchiveId } from "../Utilities/date";
 
+import { assignUniqueColors } from "../Utilities/chartColors";
+
 const screenWidth = Dimensions.get("window").width;
 
 const months = [
@@ -42,14 +44,15 @@ const months = [
   "דצמבר",
 ];
 
+// חודש ושנה נוכחיים (כברירת מחדל למסך)
 const currentMonthName = months[new Date().getMonth()];
 const currentYearName = new Date().getFullYear();
 
 const Report = () => {
+
   const user = auth.currentUser;
   const { colors } = useTheme();
   const formatCurrency = useCurrency();
-
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthName);
@@ -58,7 +61,6 @@ const Report = () => {
   const [monthPicker, setMonthPicker] = useState(false);
   const [yearPicker, setYearPicker] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [barData, setBarData] = useState(null);
   const [pieDataCategories, setPieDataCategories] = useState([]);
   const [pieDataBalance, setPieDataBalance] = useState([]);
@@ -66,21 +68,30 @@ const Report = () => {
   const [lineDataUsers, setLineDataUsers] = useState(null);
   const [progressData, setProgessData] = useState(null);
 
+  // הגדרות גרפים (צבע רקע, צבע טקסט וכו')
   const chartConfig = {
     backgroundGradientFrom: colors.reportBackground,
     backgroundGradientTo: colors.reportBackground,
+
+
     color: (opacity = 1) =>
       `${colors.reportText}${Math.floor(opacity * 255).toString(16)}`,
+
     barPercentage: 0.5,
     useShadowColorFromDataset: false,
   };
 
-  // טוען קבוצות
+  // טעינת קבוצות של המשתמש
+
   useEffect(() => {
     const loadGroups = async () => {
       if (!user) return;
+
+      // קוראים את כל הקבוצות מ-Firestore
       const snapshot = await getDocs(collection(db, "groups"));
 
+      // לוקחים רק קבוצות שבהן המשתמש נמצא ב-members
+      // ואז שומרים רק id + name כדי להשתמש בבורר
       const groupNames = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((group) =>
@@ -92,26 +103,35 @@ const Report = () => {
         }));
 
       setGroups(groupNames);
+
+      // אם זו הפעם הראשונה ויש קבוצות אבל עוד לא נבחרה קבוצה, נבחר הראשונה כברירת מחדל
       if (groupNames.length > 0 && !selectedGroup) {
         setSelectedGroup(groupNames[0]);
       }
     };
+
     loadGroups();
   }, [user, selectedGroup]);
 
-  // טוען נתונים לגרפים
+
+  //  טעינת נתונים לגרפים לפי חודש/שנה/קבוצה
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user || !selectedGroup) return;
       setLoading(true);
+
       try {
+        // נשמור כאן את הכל כדי לחשב גרפים
         let allExpenses = [];
         let allCategories = [];
         let allSavings = [];
 
+        // הופכים את שם החודש לאינדקס (0..11)
         const monthIndex = months.indexOf(selectedMonth);
         const year = selectedYear;
 
+        // גבולות חודש (תחילת החודש עד סוף החודש)
         const startOfMonth = new Date(year, monthIndex, 1);
         const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59);
 
@@ -122,51 +142,56 @@ const Report = () => {
         let savingsSnap;
         let totalBudget = 0;
 
+        // בדיקה אם מדובר בחודש הנוכחי
+        // אם כן - קוראים את הנתונים ישירות מהקבוצה
+        // אם לא - קוראים מהארכיון
         const isCurrentMonth =
           year === new Date().getFullYear() &&
           monthIndex === new Date().getMonth();
 
         if (isCurrentMonth) {
-          // חודש נוכחי – טוען ישירות מהקבוצה
+
+          // חודש נוכחי - Firestore Live Data
+
           const expensesQ = query(
             collection(db, "groups", groupId, "expenses"),
             where("createdAt", ">=", Timestamp.fromDate(startOfMonth)),
             where("createdAt", "<=", Timestamp.fromDate(endOfMonth))
           );
+
           expensesSnap = await getDocs(expensesQ);
 
           categoriesSnap = await getDocs(
             collection(db, "groups", groupId, "categories")
           );
 
-          // 🔹 тут ИСПРАВЛЕНО: "savings" (как в Group.js)
           savingsSnap = await getDocs(
             collection(db, "groups", groupId, "savings")
           );
 
+          // קריאת התקציב הכולל של הקבוצה
           const groupSnap = await getDoc(doc(db, "groups", groupId));
           const groupData = groupSnap.data();
           totalBudget = groupData?.totalBudget || 0;
         } else {
-          // חודש קודם – טוען מתוך ארכיון
+
+          // חודש קודם - נתונים מהארכיון
+
           const archiveId = getArchiveId(year, monthIndex + 1);
           const archiveRef = doc(db, "groups", groupId, "archive", archiveId);
 
           expensesSnap = await getDocs(collection(archiveRef, "expenses"));
           categoriesSnap = await getDocs(collection(archiveRef, "categories"));
-
-          // 🔹 ИСПРАВЛЕНО: "savings", как и при сохранении в архив
           savingsSnap = await getDocs(collection(archiveRef, "savings"));
 
+          // תקציב שנשמר בארכיון
           const archiveSnap = await getDoc(archiveRef);
           const archiveData = archiveSnap.data();
           totalBudget = archiveData?.totalBudget || 0;
         }
 
-        allExpenses = expensesSnap.docs.map((d) => ({
-          ...d.data(),
-          groupId,
-        }));
+        // ממירים את ה-Snapshots למערכים רגילים כדי שיהיה נוח לעבוד איתם
+        allExpenses = expensesSnap.docs.map((d) => ({ ...d.data(), groupId }));
         allCategories = categoriesSnap.docs.map((d) => ({
           ...d.data(),
           groupId,
@@ -178,8 +203,13 @@ const Report = () => {
           id: d.id,
         }));
 
-        // ימי החודש
+        // ימי החודש (את יוצרת 1..31 תמיד)
+        // הערה: בחודשים עם 30/28 ימים יהיו פשוט ימים עם 0 הוצאות
         const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+
+        // BarChart: סכום הוצאות לכל יום
+
         const dailyTotals = days.map((day) =>
           allExpenses
             .filter((e) => e.createdAt?.toDate().getDate() === day)
@@ -191,7 +221,9 @@ const Report = () => {
           datasets: [{ data: dailyTotals }],
         };
 
-        // קטגוריות (כולל חיסכון)
+
+        // PieChart קטגוריות/חיסכון: סכום לכל id
+ 
         const categoriesTotal = {};
         allExpenses.forEach((e) => {
           if (e.categoryId) {
@@ -204,33 +236,46 @@ const Report = () => {
           }
         });
 
-        const newPieDataCategories = Object.entries(categoriesTotal).map(
+        // יוצרים מערך צבעים
+        const rawPieCategories = Object.entries(categoriesTotal).map(
           ([id, value]) => {
             const category = allCategories.find((c) => c.id === id);
             const saving = allSavings.find((s) => s.id === id);
 
             return {
+              id,
+              // אם זה קטגוריה נשתמש בשם שלה
+              // אם זה חיסכון - נוסיף "חיסכון -"
               name: category?.name
                 ? category.name
                 : saving?.name
                 ? `חיסכון - ${saving.name}`
                 : "ללא קטגוריות",
               population: value,
-              color:
-                category?.color ||
-                (saving
-                  ? "#2196f3"
-                  : `#${Math.floor(Math.random() * 16777215)
-                      .toString(16)
-                      .padStart(6, "0")}`),
+
+              // אם לקטגוריה יש צבע שמור - נעדיף אותו
+              // אחרת assignUniqueColors יבחר צבע ייחודי
+              preferredColor: category?.color || null,
             };
           }
         );
+
+        // נותן צבעים ייחודיים כדי להימנע מצבעים שחוזרים
+        const newPieDataCategories = assignUniqueColors(
+          rawPieCategories,
+          (x) => x.id,
+          (x) => x.preferredColor
+        ).map(({ preferredColor, ...rest }) => rest);
+
+
+        // PieChart "תקציב מול הוצאות": מוסיפים "יתרה"
 
         const totalExpenses = allExpenses.reduce(
           (s, e) => s + (e.amount || 0),
           0
         );
+
+        // יתרה לא יכולה להיות שלילית (אם עברנו תקציב - נשים 0)
         const profit = Math.max(totalBudget - totalExpenses, 0);
 
         const newPieDataBalance = [
@@ -238,12 +283,15 @@ const Report = () => {
           { name: "יתרה", population: profit, color: "#4caf50" },
         ];
 
-        // משתמשים
+
+        // PieChart משתמשים: סכום הוצאות לכל userId
+
         const usersTotal = {};
         allExpenses.forEach((e) => {
           usersTotal[e.userId] = (usersTotal[e.userId] || 0) + (e.amount || 0);
         });
 
+        // מביאים שמות משתמשים מה-collection users
         const users = {};
         const usersSnap = await getDocs(collection(db, "users"));
         usersSnap.forEach((docSnap) => {
@@ -251,16 +299,19 @@ const Report = () => {
           users[docSnap.id] = data.name || "ללא שם";
         });
 
-        const newPieDataUsers = Object.entries(usersTotal).map(
-          ([userId, value]) => ({
-            name: users[userId] || "ללא משתמש",
-            population: value,
-            color: `#${Math.floor(Math.random() * 16777215)
-              .toString(16)
-              .padStart(6, "0")}`,
-          })
-        );
+        // יוצרים נתונים לעוגת משתמשים
+        const rawPieUsers = Object.entries(usersTotal).map(([userId, value]) => ({
+          id: userId,
+          name: users[userId] || "ללא משתמש",
+          population: value,
+        }));
 
+        // צבעים ייחודיים למשתמשים
+        const newPieDataUsers = assignUniqueColors(rawPieUsers, (x) => x.id);
+
+
+        // LineChart: סכום הוצאות לכל יום (קו)
+   
         const dailyExpenseTotals = days.map((day) =>
           allExpenses
             .filter((e) => e.createdAt?.toDate().getDate() === day)
@@ -272,9 +323,13 @@ const Report = () => {
           datasets: [{ data: dailyExpenseTotals }],
         };
 
+        // ניצול תקציב: יחס הוצאות/תקציב
+        // raw יכול להיות מעל 1 (לדוגמה 1.4 = 140%)
+ 
         const rawProgress = totalBudget > 0 ? totalExpenses / totalBudget : 0;
         const progress = Math.min(rawProgress, 1);
 
+        // שמירת נתונים ל-state כדי להציג UI
         setBarData(newBarData);
         setPieDataCategories(newPieDataCategories);
         setPieDataBalance(newPieDataBalance);
@@ -284,11 +339,14 @@ const Report = () => {
       } catch (e) {
         console.error("Error loading data:", e);
       }
+
       setLoading(false);
     };
 
     fetchData();
   }, [selectedGroup, selectedMonth, selectedYear, user]);
+
+
 
   return (
     <SafeAreaView
@@ -306,6 +364,7 @@ const Report = () => {
           <Text style={[styles.selectorLabel, { color: colors.reportText }]}>
             בחירת קבוצה
           </Text>
+
           <TouchableOpacity
             style={[
               styles.selector,
@@ -320,6 +379,8 @@ const Report = () => {
               {selectedGroup?.name || "בחר קבוצה"}
             </Text>
           </TouchableOpacity>
+
+          {/* אופציות של קבוצות */}
           {groupPicker && (
             <View
               style={[
@@ -355,6 +416,7 @@ const Report = () => {
           <Text style={[styles.selectorLabel, { color: colors.reportText }]}>
             בחירת חודש
           </Text>
+
           <TouchableOpacity
             style={[
               styles.selector,
@@ -369,6 +431,7 @@ const Report = () => {
               {selectedMonth}
             </Text>
           </TouchableOpacity>
+
           {monthPicker && (
             <View
               style={[
@@ -404,6 +467,7 @@ const Report = () => {
           <Text style={[styles.selectorLabel, { color: colors.reportText }]}>
             בחירת שנה
           </Text>
+
           <TouchableOpacity
             style={[
               styles.selector,
@@ -418,41 +482,43 @@ const Report = () => {
               {selectedYear}
             </Text>
           </TouchableOpacity>
-        {yearPicker && (
-          <View
-            style={[
-              styles.pickerOptions,
-              { borderColor: colors.reportBorder },
-            ]}
-          >
-            {[2023, 2024, 2025].map((year) => (
-              <TouchableOpacity
-                key={year}
-                style={styles.pickerItem}
-                onPress={() => {
-                  setSelectedYear(year);
-                  setYearPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.pickerItemText,
-                    { color: colors.reportText },
-                  ]}
+
+          {yearPicker && (
+            <View
+              style={[
+                styles.pickerOptions,
+                { borderColor: colors.reportBorder },
+              ]}
+            >
+              {[2023, 2024, 2025].map((year) => (
+                <TouchableOpacity
+                  key={year}
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    setSelectedYear(year);
+                    setYearPicker(false);
+                  }}
                 >
-                  {year}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+                  <Text
+                    style={[
+                      styles.pickerItemText,
+                      { color: colors.reportText },
+                    ]}
+                  >
+                    {year}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
+        {/* טעינה / תוכן */}
         {loading ? (
           <ActivityIndicator size="large" color={colors.progressColor} />
         ) : (
           <>
-            {/* גרף */}
+            {/* גרף עמודות - הוצאות */}
             <View
               style={[
                 styles.card,
@@ -465,6 +531,7 @@ const Report = () => {
               <Text style={[styles.cardTitle, { color: colors.reportText }]}>
                 הוצאות
               </Text>
+
               {barData && (
                 <BarChart
                   data={barData}
@@ -476,6 +543,7 @@ const Report = () => {
               )}
             </View>
 
+            {/* עוגה - קטגוריות */}
             <View
               style={[
                 styles.card,
@@ -488,6 +556,7 @@ const Report = () => {
               <Text style={[styles.cardTitle, { color: colors.reportText }]}>
                 התפלגות לפי קטגוריות
               </Text>
+
               {pieDataCategories.length > 0 && (
                 <>
                   <PieChart
@@ -504,6 +573,8 @@ const Report = () => {
                     paddingLeft="15"
                     hasLegend={false}
                   />
+
+                  {/* רשימת קטגוריות + צבע */}
                   {pieDataCategories.map((item, index) => (
                     <View key={index} style={styles.categoryRow}>
                       <View
@@ -535,6 +606,7 @@ const Report = () => {
               )}
             </View>
 
+            {/* עוגה - תקציב מול הוצאות */}
             <View
               style={[
                 styles.card,
@@ -547,6 +619,7 @@ const Report = () => {
               <Text style={[styles.cardTitle, { color: colors.reportText }]}>
                 תקציב מול הוצאות
               </Text>
+
               {pieDataBalance.length > 0 && (
                 <>
                   <PieChart
@@ -563,6 +636,7 @@ const Report = () => {
                     paddingLeft="15"
                     hasLegend={false}
                   />
+
                   {pieDataBalance.map((item, index) => (
                     <View key={index} style={styles.categoryRow}>
                       <View
@@ -594,6 +668,7 @@ const Report = () => {
               )}
             </View>
 
+            {/* עוגה - משתמשים */}
             <View
               style={[
                 styles.card,
@@ -606,6 +681,7 @@ const Report = () => {
               <Text style={[styles.cardTitle, { color: colors.reportText }]}>
                 התפלגות לפי משתמשים
               </Text>
+
               {pieDataUsers.length > 0 && (
                 <>
                   <PieChart
@@ -622,6 +698,7 @@ const Report = () => {
                     paddingLeft="15"
                     hasLegend={false}
                   />
+
                   {pieDataUsers.map((item, index) => (
                     <View key={index} style={styles.categoryRow}>
                       <View
@@ -639,10 +716,7 @@ const Report = () => {
                         {item.name}: {formatCurrency(item.population)} (
                         {(
                           (item.population /
-                            pieDataUsers.reduce(
-                              (s, i) => s + i.population,
-                              0
-                            )) *
+                            pieDataUsers.reduce((s, i) => s + i.population, 0)) *
                           100
                         ).toFixed(0)}
                         %)
@@ -653,6 +727,7 @@ const Report = () => {
               )}
             </View>
 
+            {/* גרף קו - סך הוצאות לפי ימים */}
             <View
               style={[
                 styles.card,
@@ -665,6 +740,7 @@ const Report = () => {
               <Text style={[styles.cardTitle, { color: colors.reportText }]}>
                 סך הכל הוצאות לפי ימים
               </Text>
+
               {lineDataUsers && lineDataUsers.datasets[0].data.length > 0 && (
                 <LineChart
                   data={lineDataUsers}
@@ -676,6 +752,7 @@ const Report = () => {
               )}
             </View>
 
+            {/* ניצול תקציב */}
             <View
               style={[
                 styles.card,
@@ -688,11 +765,13 @@ const Report = () => {
               <Text style={[styles.cardTitle, { color: colors.reportText }]}>
                 ניצול תקציב
               </Text>
+
               {progressData !== null && (
                 <Progress.Circle
                   size={120}
                   progress={progressData.capped}
                   showsText={true}
+                  // מציגים את האחוז האמיתי (גם אם מעל 100%)
                   formatText={() => `${Math.round(progressData.raw * 100)}%`}
                   color={colors.progressColor}
                   thickness={10}

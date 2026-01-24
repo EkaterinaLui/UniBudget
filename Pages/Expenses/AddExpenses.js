@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, useTheme } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import {
   addDoc,
@@ -29,6 +29,8 @@ const AddExpenses = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+
 
   const { settings } = useContext(SettingsContext);
 
@@ -190,36 +192,36 @@ const AddExpenses = () => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text>טוען...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.text }}>טוען...</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top , backgroundColor: colors.categoryDetailsBackground}]}>
       {/* חזור */}
       <TouchableOpacity
         style={[styles.backButton, { top: insets.top + 10 }]}
         onPress={() => navigation.canGoBack() && navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={24} color="#333" />
+        <Ionicons name="arrow-forward" size={24} color="#333" />
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>הוסף הוצאה</Text>
+        <Text style={[styles.title, { color: colors.text}] }>הוסף הוצאה</Text>
 
         {/* מידע על הקטגוריה */}
         <View style={styles.categoryInfo}>
-          <Text style={styles.categoryLabel}>קטגוריה:</Text>
-          <Text style={styles.categoryNameText}>{categoryName}</Text>
+          <Text style={[styles.categoryLabel, { color: colors.text }]}>קטגוריה:</Text>
+          <Text style={[styles.categoryNameText, { color: colors.text }]}>{categoryName}</Text>
         </View>
 
         {/* סכום */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>סכום הוצאה ({currencySymbol})</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, {backgroundColor: colors.inputAddEx}]}
             placeholder={`0.00 ${currencySymbol}`}
             keyboardType="numeric"
             value={amount}
@@ -231,7 +233,7 @@ const AddExpenses = () => {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>תיאור (אופציונלי)</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, {backgroundColor: colors.inputAddEx}]}
             placeholder="תיאור"
             value={description}
             onChangeText={setDescription}
@@ -240,7 +242,7 @@ const AddExpenses = () => {
 
         {/* כפתור שמירה */}
         <TouchableOpacity
-          style={[styles.button, isSaving && styles.buttonDisabled]}
+          style={[styles.button, isSaving && styles.buttonDisabled,  { backgroundColor: colors.primary }]}
           onPress={addExpense}
           disabled={isSaving}
         >

@@ -1,5 +1,5 @@
 // Theme.js
-import { DefaultTheme, DarkTheme } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme } from "@react-navigation/native";
 
 export const CustomLightTheme = {
   ...DefaultTheme,
@@ -12,6 +12,7 @@ export const CustomLightTheme = {
     text: "#333333",
     textSecondary: "#666666",
     border: "#d6d6d6",
+    inputAddEx: "#ffff",
 
     // ראשי
     primary: "#0077B6",
@@ -203,6 +204,7 @@ export const CustomDarkTheme = {
     textSecondary: "#aaaaaa",
     border: "#272729",
     tabBackground: "#1E1E1E",
+    inputAddEx: "#aaaa",
 
     // ראשי
     primary: "#90E0EF",

@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
+  orderBy,
   query,
   updateDoc,
   where,
@@ -45,6 +46,7 @@ const CategoryDetails = () => {
   const [users, setUsers] = useState({});
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [isRegular, setIsRegular] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!groupId || !categoryId) return;
@@ -77,7 +79,12 @@ const CategoryDetails = () => {
       }
     });
 
-    const q = query(expensesRef, where("categoryId", "==", categoryId));
+    const q = query(
+      expensesRef,
+      where("categoryId", "==", categoryId),
+      orderBy("createdAt", "desc")
+    );
+
     const unsubExpenses = onSnapshot(q, (querySnapshot) => {
       const list = querySnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -201,7 +208,7 @@ const CategoryDetails = () => {
         data={expenses}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={[styles.expenseItem, { backgroundColor: colors.card }]}>
+          <View style={[styles.ordeem, { backgroundColor: colors.card }]}>
             <View>
               <Text style={{ color: colors.text }}>{item.description}</Text>
               <Text style={{ color: colors.textSecondary }}>
@@ -280,97 +287,175 @@ const CategoryDetails = () => {
               )}
             </View>
 
-            {/* פעולות אדמין (רק בקטגוריה רגילה) */}
-            {isAdmin && !isExpired && !category.isTemporary && (
-              <View style={styles.adminSection}>
+            {/* הוספת הוצאה */}
+            {!isExpired && (
+              <View style={styles.addExpenseRow}>
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
-                    { backgroundColor: colors.primary },
+                    { backgroundColor: colors.primary, flex: 1 },
                   ]}
-                  onPress={() => setShowBudgetModal(true)}
+                  onPress={() =>
+                    navigation.navigate("AddExpense", {
+                      groupId,
+                      userId,
+                      initialCategoryId: categoryId,
+                    })
+                  }
+                  activeOpacity={0.85}
                 >
-                  <Ionicons
-                    name="wallet-outline"
-                    size={20}
-                    color={colors.buttonText}
-                  />
+                  <Ionicons name="add" size={20} color={colors.buttonText} />
                   <Text
                     style={[styles.actionText, { color: colors.buttonText }]}
                   >
-                    עדכון תקציב
+                    הוסף הוצאה
                   </Text>
                 </TouchableOpacity>
 
-                <View style={styles.switchRow}>
-                  <Text style={{ color: colors.text }}>שמור לחודשים הבאים</Text>
-                  <Switch
-                    value={isRegular}
-                    onValueChange={async (val) => {
-                      setIsRegular(val);
-                      await updateDoc(
-                        doc(db, "groups", groupId, "categories", categoryId),
-                        { isRegular: val }
-                      );
-                    }}
-                  />
-                </View>
+                {/*חץ פותח/מסתיר */}
+                {(isAdmin || isExpired) && (
+                  <TouchableOpacity
+                    style={[
+                      styles.chevronButton,
+                      {
+                        backgroundColor:
+                          colors.categoryDetailsCard ?? colors.card,
+                      },
+                    ]}
+                    onPress={() => setShowSettings((p) => !p)}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons
+                      name={showSettings ? "chevron-up" : "chevron-down"}
+                      size={22}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
-            {/* הוספת הוצאה */}
-            {!isExpired && (
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: colors.primary },
-                ]}
-                onPress={() =>
-                  navigation.navigate("AddExpense", {
-                    groupId,
-                    userId,
-                    initialCategoryId: categoryId,
-                  })
-                }
+            {/* כל מה שמתחת לחץ */}
+            {showSettings && (
+              <View
+                style={[styles.settingsBox, { borderColor: colors.border }]}
               >
-                <Ionicons name="add" size={20} color={colors.buttonText} />
-                <Text style={[styles.actionText, { color: colors.buttonText }]}>
-                  הוסף הוצאה
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* מחיקת קטגוריה */}
-            {(isAdmin || isExpired) && (
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: colors.danger },
-                ]}
-                onPress={() =>
-                  Alert.alert(
-                    "מחיקת קטגוריה",
-                    "למחוק את הקטגוריה וכל ההוצאות שבתוכה?",
-                    [
-                      { text: "ביטול", style: "cancel" },
+                {/* עדכון תקציב לקטגוריה רגילה ולא מיוחדת*/}
+                {isAdmin && !isExpired && !category.isTemporary && (
+                  <TouchableOpacity
+                    style={[
+                      styles.settingsItem,
                       {
-                        text: "מחק",
-                        style: "destructive",
-                        onPress: deleteCategory,
+                        backgroundColor: colors.card,
+                        shadowColor: colors.shadow,
                       },
-                    ]
-                  )
-                }
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={20}
-                  color={colors.buttonText}
-                />
-                <Text style={[styles.actionText, { color: colors.buttonText }]}>
-                  מחק קטגוריה
-                </Text>
-              </TouchableOpacity>
+                    ]}
+                    onPress={() => setShowBudgetModal(true)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.settingsLeft}>
+                      <Ionicons
+                        name="wallet-outline"
+                        size={20}
+                        color={colors.text}
+                      />
+                      <Text
+                        style={[styles.settingsText, { color: colors.text }]}
+                      >
+                        עדכון תקציב
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-back"
+                      size={18}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* שמירה לחודשים הבאים */}
+                {isAdmin && !isExpired && !category.isTemporary && (
+                  <View
+                    style={[
+                      styles.settingsItem,
+                      {
+                        backgroundColor: colors.card,
+                        shadowColor: colors.shadow,
+                      },
+                    ]}
+                  >
+                    <View style={styles.settingsLeft}>
+                      <Ionicons
+                        name="repeat-outline"
+                        size={20}
+                        color={colors.text}
+                      />
+                      <Text
+                        style={[styles.settingsText, { color: colors.text }]}
+                      >
+                        שמור לחודשים הבאים
+                      </Text>
+                    </View>
+
+                    <Switch
+                      value={isRegular}
+                      onValueChange={async (val) => {
+                        setIsRegular(val);
+                        await updateDoc(
+                          doc(db, "groups", groupId, "categories", categoryId),
+                          { isRegular: val }
+                        );
+                      }}
+                    />
+                  </View>
+                )}
+
+                {/* מחיקה */}
+                {(isAdmin || isExpired) && (
+                  <TouchableOpacity
+                    style={[
+                      styles.settingsItem,
+                      {
+                        backgroundColor: colors.card,
+                        shadowColor: colors.shadow,
+                      },
+                    ]}
+                    onPress={() =>
+                      Alert.alert(
+                        "מחיקת קטגוריה",
+                        "למחוק את הקטגוריה וכל ההוצאות שבתוכה?",
+                        [
+                          { text: "ביטול", style: "cancel" },
+                          {
+                            text: "מחק",
+                            style: "destructive",
+                            onPress: deleteCategory,
+                          },
+                        ]
+                      )
+                    }
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.settingsLeft}>
+                      <Ionicons
+                        name="trash-outline"
+                        size={20}
+                        color={colors.danger}
+                      />
+                      <Text
+                        style={[styles.settingsText, { color: colors.danger }]}
+                      >
+                        מחק קטגוריה
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-back"
+                      size={18}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {/* כותרת הוצאות */}
@@ -461,14 +546,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: 50,
-    marginTop: 15,
-    padding: 10,
-    borderRadius: 10,
-  },
   expensesSection: {
     paddingHorizontal: 20,
     marginTop: 20,
@@ -478,7 +555,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
-  expenseItem: {
+  ordeem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -517,6 +594,52 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginHorizontal: 5,
+  },
+  addExpenseRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    gap: 10,
+    marginTop: 10,
+  },
+
+  chevronButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
+  },
+
+  settingsBox: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 10,
+    gap: 10,
+  },
+
+  settingsItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    elevation: 2,
+  },
+
+  settingsLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  settingsText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
 

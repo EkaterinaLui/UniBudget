@@ -18,21 +18,13 @@ const ResetBudgetsButton = ({ groupId }) => {
     try {
       // חודש שרוצים לשמור בארכיון
       const now = new Date();
-      const archiveDate = new Date(
-        now.getFullYear(),
-        now.getMonth() - 1, // חודש הקודם
-        1
-      );
+      const archiveDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
       const year = archiveDate.getFullYear();
       const month = archiveDate.getMonth() + 1; // 1..12
-
       const archiveId = getArchiveId(year, month);
 
-      const archiveRef = doc(
-        collection(db, "groups", groupId, "archive"),
-        archiveId
-      );
+      const archiveRef = doc(collection(db, "groups", groupId, "archive"), archiveId);
 
       // שומרים תקציבים ומשתמשים
       const groupRef = doc(db, "groups", groupId);
@@ -48,11 +40,13 @@ const ResetBudgetsButton = ({ groupId }) => {
         members: groupData.members || [],
       });
 
-      // קטגוריות
-      const catsSnap = await getDocs(
-        collection(db, "groups", groupId, "categories")
-      );
-      for (let cat of catsSnap.docs) {
+      // =========================
+      // קטגוריות: בונים סט של קטגוריות מיוחדות שעדיין בתוקף
+      // =========================
+      const catsSnap = await getDocs(collection(db, "groups", groupId, "categories"));
+      const activeTemporaryCategoryIds = new Set();
+
+      for (const cat of catsSnap.docs) {
         const data = cat.data();
 
         // שומרים בארכיון
@@ -63,27 +57,26 @@ const ResetBudgetsButton = ({ groupId }) => {
         const isRegular = data.isRegular === true;
         const isTemporary = data.isTemporary === true;
 
-        if (isRegular) {
-       //קטגוריות קבועות נשארות עם תקציב הוגדר
-          continue;
-        }
+        // קטגוריות קבועות נשארות
+        if (isRegular) continue;
 
+        // קטגוריות מיוחדות
         if (isTemporary) {
           let endDate = null;
 
-          if (data.eventEndDate?.toDate) {
-            endDate = data.eventEndDate.toDate();
-          } else if (data.eventEndDate instanceof Date) {
-            endDate = data.eventEndDate;
-          }
+          if (data.eventEndDate?.toDate) endDate = data.eventEndDate.toDate();
+          else if (data.eventEndDate instanceof Date) endDate = data.eventEndDate;
 
           const nowDate = new Date();
+          const isExpired = endDate ? endDate < nowDate : false;
 
-          // אם פג תוקף - מוחקים
-          if (endDate && endDate < nowDate) {
+          if (isExpired) {
+            // פג תוקף - מוחקים את הקטגוריה
             await deleteDoc(catRef);
+          } else {
+            // עדיין בתוקף - משאירים ומסמנים כפעילה
+            activeTemporaryCategoryIds.add(cat.id);
           }
-          // אם עדיין בתוקף - משאירים
           continue;
         }
 
@@ -91,23 +84,29 @@ const ResetBudgetsButton = ({ groupId }) => {
         await deleteDoc(catRef);
       }
 
-      // הוצאות
-      const expSnap = await getDocs(
-        collection(db, "groups", groupId, "expenses")
-      );
-      for (let exp of expSnap.docs) {
-        await setDoc(
-          doc(collection(archiveRef, "expenses"), exp.id),
-          exp.data()
-        );
-        await deleteDoc(doc(db, "groups", groupId, "expenses", exp.id));
+      // =========================
+      // הוצאות: מוחקים רק הוצאות שלא שייכות לקטגוריות מיוחדות פעילות
+      // =========================
+      const expSnap = await getDocs(collection(db, "groups", groupId, "expenses"));
+
+      for (const exp of expSnap.docs) {
+        const expData = exp.data();
+
+        // תמיד שומרים בארכיון
+        await setDoc(doc(collection(archiveRef, "expenses"), exp.id), expData);
+
+        const categoryId = expData?.categoryId;
+        const keepInGroup = categoryId && activeTemporaryCategoryIds.has(categoryId);
+
+        // אם לא שייך לקטגוריה מיוחדת פעילה – מוחקים מהקבוצה
+        if (!keepInGroup) {
+          await deleteDoc(doc(db, "groups", groupId, "expenses", exp.id));
+        }
       }
 
-      // חסכונות
-      const savingSnap = await getDocs(
-        collection(db, "groups", groupId, "savings")
-      );
-      for (let s of savingSnap.docs) {
+      // חסכונות (את משאירה בקבוצה - רק ארכוב)
+      const savingSnap = await getDocs(collection(db, "groups", groupId, "savings"));
+      for (const s of savingSnap.docs) {
         await setDoc(doc(collection(archiveRef, "savings"), s.id), s.data());
       }
 
@@ -121,7 +120,7 @@ const ResetBudgetsButton = ({ groupId }) => {
   const confirmReset = () => {
     Alert.alert(
       "איפוס",
-      "האם אתה בטוח שברצונך לאפס? קטגוריות קבועות יישארו עם תקציב מאופס, כל השאר יימחקו.",
+      "האם אתה בטוח שברצונך לאפס? קטגוריות קבועות יישארו, קטגוריות מיוחדות בתוקף וההוצאות שלהן יישארו, ושאר ההוצאות יימחקו.",
       [
         { text: "ביטול", style: "cancel" },
         { text: "אשר", style: "destructive", onPress: resetBudgets },
@@ -134,9 +133,7 @@ const ResetBudgetsButton = ({ groupId }) => {
       style={[styles.button, { backgroundColor: colors.danger }]}
       onPress={confirmReset}
     >
-      <Text style={[styles.text, { color: colors.buttonText }]}>
-        איפוס קבוצה
-      </Text>
+      <Text style={[styles.text, { color: colors.buttonText }]}>איפוס קבוצה</Text>
     </TouchableOpacity>
   );
 };

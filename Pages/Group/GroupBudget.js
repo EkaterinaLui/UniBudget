@@ -32,8 +32,8 @@ const GroupBudget = () => {
   const [newBudget, setNewBudget] = useState("");
   const [promptVisible, setPromptVisible] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [budgetMode, setBudgetMode] = useState("total"); 
-  const [memberBudgets, setMemberBudgets] = useState([]); 
+  const [budgetMode, setBudgetMode] = useState("total");
+  const [memberBudgets, setMemberBudgets] = useState([]);
 
   const isFamilyGroup = groupData?.type === "family";
 
@@ -96,9 +96,37 @@ const GroupBudget = () => {
     };
   }, [groupId, userId]);
 
-  const spentAmount = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  // מזהים קטגוריות מיוחדות
+  const temporaryCategoryIds = new Set(
+    (categories || []).filter((c) => c.isTemporary === true).map((c) => c.id)
+  );
+
+  // הוצאות רגילות
+  const regularBudgetExpenses = (expenses || []).filter(
+    (e) => !temporaryCategoryIds.has(e.categoryId)
+  );
+
+  // הוצאות מיוחדות
+  const specialBudgetExpenses = (expenses || []).filter((e) =>
+    temporaryCategoryIds.has(e.categoryId)
+  );
+
+  // סכומים
+  const spentRegular = regularBudgetExpenses.reduce(
+    (sum, e) => sum + (e.amount || 0),
+    0
+  );
+  const spentSpecial = specialBudgetExpenses.reduce(
+    (sum, e) => sum + (e.amount || 0),
+    0
+  );
+  const spentTotal = (expenses || []).reduce(
+    (sum, e) => sum + (e.amount || 0),
+    0
+  );
+
   const totalBudget = groupData?.totalBudget || 0;
-  const remainingBudget = totalBudget - spentAmount;
+  const remainingBudget = totalBudget - spentRegular; // חשוב: נשאר מהתקציב החודשי רק לפי רגיל
 
   const updateBudget = () => {
     if (!isAdmin) {
@@ -113,10 +141,9 @@ const GroupBudget = () => {
 
     const groupRef = doc(db, "groups", groupId);
 
-    const categoriesSum = categories.reduce(
-      (sum, cat) => sum + (cat.budget || 0),
-      0
-    );
+    const categoriesSum = categories
+      .filter((cat) => cat.isTemporary !== true)
+      .reduce((sum, cat) => sum + (cat.budget || 0), 0);
 
     // בדיקה שזה קבוצה מסוג משפחה
     if (budgetMode === "perMember" && !isFamilyGroup) {
@@ -214,7 +241,7 @@ const GroupBudget = () => {
 
   const changeMemBud = (index, text) => {
     setMemberBudgets((prev) => {
-      const newArr = [...prev]; 
+      const newArr = [...prev];
       newArr[index] = text;
       return newArr;
     });
@@ -258,13 +285,29 @@ const GroupBudget = () => {
             סיכום התקציב
           </Text>
           <Text style={[styles.cardValue, { color: colors.text }]}>
-            תקציב כולל: {formatCurrency(totalBudget)}
+            תקציב חודשי כולל: {formatCurrency(totalBudget)}
           </Text>
+
           <Text style={[styles.cardValue, { color: colors.text }]}>
-            הוצאות: {formatCurrency(spentAmount)}
+            הוצאות תקציב חודשי :{" "}
+            {formatCurrency(spentRegular)}
           </Text>
+
           <Text style={[styles.cardValue, { color: colors.text }]}>
-            נשאר: {formatCurrency(remainingBudget)}
+            הוצאות תקציבים מיוחדים: {formatCurrency(spentSpecial)}
+          </Text>
+
+          <Text
+            style={[
+              styles.cardValue,
+              { color: colors.text, fontWeight: "bold" },
+            ]}
+          >
+            סה״כ כל ההוצאות (כולל מיוחדים): {formatCurrency(spentTotal)}
+          </Text>
+
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            יתרה לתקציב החודשי: {formatCurrency(remainingBudget)}
           </Text>
         </View>
 
@@ -288,10 +331,10 @@ const GroupBudget = () => {
 
         {/* רשימת הוצאות */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          כל ההוצאות
+          הוצאות תקציב חודשי
         </Text>
         <View style={styles.expensesList}>
-          {expenses.map((expense) => (
+          {regularBudgetExpenses.map((expense) => (
             <View
               key={expense.id}
               style={[
@@ -314,6 +357,44 @@ const GroupBudget = () => {
               </Text>
             </View>
           ))}
+        </View>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          הוצאות תקציבים מיוחדים
+        </Text>
+        <View style={styles.expensesList}>
+          {specialBudgetExpenses.length === 0 ? (
+            <Text
+              style={[styles.expenseText, { color: colors.text, opacity: 0.7 }]}
+            >
+              אין הוצאות בקטגוריות מיוחדות החודש.
+            </Text>
+          ) : (
+            specialBudgetExpenses.map((expense) => (
+              <View
+                key={expense.id}
+                style={[
+                  styles.expenseItem,
+                  {
+                    backgroundColor: colors.expenseBackground,
+                    shadowColor: colors.shadow,
+                  },
+                ]}
+              >
+                <Text style={[styles.expenseText, { color: colors.text }]}>
+                  {groupData?.members.find((m) => m.uid === expense.userId)
+                    ?.name || "משתמש"}
+                </Text>
+
+                <Text style={[styles.expenseText, { color: colors.text }]}>
+                  {expense.description}
+                </Text>
+
+                <Text style={[styles.expenseAmount, { color: colors.text }]}>
+                  {formatCurrency(expense.amount)}
+                </Text>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -423,9 +504,7 @@ const GroupBudget = () => {
                             },
                           ]}
                           value={memberBudgets[index] || ""}
-                          onChangeText={(text) =>
-                            changeMemBud(index, text)
-                          }
+                          onChangeText={(text) => changeMemBud(index, text)}
                           keyboardType="numeric"
                         />
                       </View>
@@ -496,12 +575,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
-    textAlign: "right",
+    textAlign: "left",
   },
   cardValue: {
     fontSize: 16,
     marginBottom: 5,
-    textAlign: "right",
+    textAlign: "left",
+    writingDirection: "rtl"
   },
   sectionTitle: {
     fontSize: 20,
@@ -544,12 +624,15 @@ const styles = StyleSheet.create({
   },
   expenseText: {
     fontSize: 14,
-    textAlign: "right",
+    textAlign: "left",
+    flex: 1, 
+    marginLeft: 7,
   },
   expenseAmount: {
     fontSize: 14,
     fontWeight: "bold",
-    textAlign: "right",
+    textAlign: "left",
+    marginRight: 7,
   },
   modalOverlay: {
     flex: 1,
@@ -616,7 +699,6 @@ const styles = StyleSheet.create({
   budgetModeTextActive: {
     color: "#fff",
   },
-
 
   memberBudgetRow: {
     flexDirection: "row",

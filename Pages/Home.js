@@ -67,13 +67,13 @@ function Home({ navigation, db, userId }) {
   }, [db, userId]);
 
   const renderGroupItem = ({ item }) => (
-    <View
+   
+    <TouchableOpacity
       style={[
         styles.groupItem,
         { backgroundColor: colors.tabBackground, borderColor: colors.border},
       ]}
-    >
-      <TouchableOpacity
+    
         onPress={() =>
           navigation.navigate("Group", { groupId: item.id, userId })
         }
@@ -82,7 +82,7 @@ function Home({ navigation, db, userId }) {
           {item.groupName}
         </Text>
       </TouchableOpacity>
-    </View>
+   
   );
 
   const greeting = (() => {
@@ -132,6 +132,7 @@ function Home({ navigation, db, userId }) {
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             <View style={styles.createButtonContainer}>
+              
               <TouchableOpacity
                 onPress={() => navigation.navigate("CreateGroup", { userName })}
                 activeOpacity={0.8}

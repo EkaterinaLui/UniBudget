@@ -17,10 +17,12 @@ const MemberCard = ({
   membersData,
   colors,
   formatCurrency,
-  memberBudgets
+  memberBudgets,
 }) => {
-  if (item.isAddButton) {
+  // כרטיס "הוספת משתמש"
+  if (item?.isAddButton) {
     if (!isAdmin) return null;
+
     return (
       <TouchableOpacity
         key="add-member"
@@ -41,20 +43,26 @@ const MemberCard = ({
     );
   }
 
-  const memberId = item.uid;
-  const progress = memberProgress[memberId] || 0;
-  const spent = memberSpending[memberId] || 0;
-  const memberName = item.name || allUsers[memberId] || `משתמש (${memberId})`;
+  const memberId = item?.uid;
 
-  // תקציב למשתמש
+  // progress אמיתי (יכול להיות מעל 100)
+  const progressRaw = memberProgress?.[memberId] ?? 0;
+
+  // לציור בלבד - לא יותר מ-100
+  const progressForCircle = Math.min(Math.max(progressRaw, 0), 100);
+
+  const spent = memberSpending?.[memberId] ?? 0;
+  const memberName = item?.name || allUsers?.[memberId] || `משתמש (${memberId})`;
+
+  // תקציב למשתמש (תמיד מספר)
   let memberBudget = 0;
 
-  if (memberBudgets && memberBudgets[memberId] !== undefined) {
+  if (memberBudgets?.[memberId] !== undefined && memberBudgets?.[memberId] !== null) {
     // אם בבסיס נתונים שמור תקציב אישי
-    memberBudget = memberBudgets[memberId];
-  } else if (totalBudget && membersData && membersData.length > 0) {
-    // אם לא חלוקה של תקציב כללי לפי כל המשתמשים
-    memberBudget = totalBudget / membersData.length;
+    memberBudget = Number(memberBudgets[memberId]) || 0;
+  } else if (totalBudget && Array.isArray(membersData) && membersData.length > 0) {
+    // אם לא - חלוקה של תקציב כללי לפי כל המשתמשים
+    memberBudget = Number(totalBudget) / membersData.length;
   }
 
   return (
@@ -71,10 +79,15 @@ const MemberCard = ({
         navigation.navigate("UsersDetails", { groupId, memberId, memberName })
       }
     >
-      <CircularProgressBar progress={progress} />
+      <CircularProgressBar
+        progress={progressForCircle}
+        label={`${Math.round(progressRaw)}%`}
+      />
+
       <Text style={[styles.memberName, { color: colors.text }]}>
         {memberName}
       </Text>
+
       <Text style={[styles.memberAmount, { color: colors.secondary }]}>
         {formatCurrency(spent)} / {formatCurrency(memberBudget)}
       </Text>
