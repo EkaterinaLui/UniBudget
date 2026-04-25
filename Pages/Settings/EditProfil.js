@@ -20,17 +20,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../../firebase";
 
+// דף עריכת הפרופיל של המשתמש שמאפשר לשנות את הפרטים האישיים, הסיסמה והאווטאר
 const EditProfil = () => {
   const user = auth.currentUser;
+  // שימוש בתמות של הניווט כדי לקבל את הצבעים הנוכחיים של האפליקציה
   const { colors } = useTheme();
+  // שימוש בניווט כדי לנווט חזרה למסך הקודם
   const navigation = useNavigation();
+  // שימוש בסטייט כדי לנהל את מצב הטעינה של הפרופיל
   const isFocused = useIsFocused();
-
+  // סטייטים לשמירת הפרטים האישיים של המשתמש
   const [name, setName] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [avatar, setAvatar] = useState(user?.photoURL || "default");
+  // סטייט לניהול מצב הטעינה בעת שמירת השינויים
   const [loading, setLoading] = useState(false);
 
   // טעינת פרופיל
@@ -40,6 +45,8 @@ const EditProfil = () => {
         const userId = auth.currentUser.uid;
         const snap = await getDoc(doc(db, "users", userId));
         if (snap.exists()) {
+          // אם המסמך קיים, מעדכנים את הסטייטים עם הנתונים מהמסמך
+          // אם יש שדות חסרים, משתמשים בערכים ברירת מחדל כדי למנוע שגיאות
           const data = snap.data();
           setName(data.name || "");
           setEmail(data.email || "");
@@ -64,7 +71,7 @@ const EditProfil = () => {
       const userId = auth.currentUser.uid;
       const userRef = doc(db, "users", userId);
 
-      // עדכון
+      // עדכון הפרטים האישיים במסד הנתונים
       await updateDoc(userRef, { name, email, avatar });
 
       // עדכון בפרופיל
@@ -93,10 +100,12 @@ const EditProfil = () => {
         }
       }
 
+      // הצגת התראה שהשינויים נשמרו בהצלחה וניווט חזרה למסך הקודם
       Alert.alert("הצלחה", "השינויים נשמרו");
       navigation.goBack();
-    } catch (e) {
-      console.error("שמירת פרופיל נכשלה:", e);
+    } catch (error) {
+      // אם יש שגיאה במהלך שמירת השינויים, מציג התראה עם אפשרות לנסות שוב
+      console.error("שמירת פרופיל נכשלה:", error);
       Alert.alert("שגיאה", "שמירת הפרופיל נכשלה");
     } finally {
       setLoading(false);

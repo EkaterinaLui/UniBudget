@@ -50,11 +50,11 @@ const CategoryDetails = () => {
 
   useEffect(() => {
     if (!groupId || !categoryId) return;
-
+    // הפניות למסמכים ואוספים הרלוונטיים לקטגוריה, לקבוצה ולהוצאות
     const categoryRef = doc(db, "groups", groupId, "categories", categoryId);
     const groupRef = doc(db, "groups", groupId);
     const expensesRef = collection(db, "groups", groupId, "expenses");
-
+    // מאזינים לקטגוריה, לקבוצה ולהוצאות כדי לקבל עדכונים בזמן אמת
     const unsubCategory = onSnapshot(categoryRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -66,7 +66,7 @@ const CategoryDetails = () => {
       }
       setLoading(false);
     });
-
+    // מאזין לשינויים בקבוצה כדי לבדוק אם המשתמש הוא מנהל ולקבל את רשימת המשתמשים
     const unsubGroup = onSnapshot(groupRef, (docSnap) => {
       if (docSnap.exists()) {
         setIsAdmin(docSnap.data().adminIds?.includes(userId));
@@ -78,13 +78,12 @@ const CategoryDetails = () => {
         setUsers(map);
       }
     });
-
     const q = query(
       expensesRef,
       where("categoryId", "==", categoryId),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
     );
-
+    // מאזין לשינויים בהוצאות של הקטגוריה כדי לעדכן את הרשימה בזמן אמת
     const unsubExpenses = onSnapshot(q, (querySnapshot) => {
       const list = querySnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -107,7 +106,7 @@ const CategoryDetails = () => {
           ? category.eventEndDate.toDate()
           : category.eventEndDate) <= new Date()
       : false;
-
+  // שמירת תקציב חדש לקטגוריה רגילה
   const saveBudget = async (value) => {
     const parsed = parseFloat(value);
     if (isNaN(parsed) || parsed < 0) {
@@ -117,23 +116,26 @@ const CategoryDetails = () => {
     try {
       const groupSnap = await getDoc(doc(db, "groups", groupId));
       const totalGroupBudget = groupSnap.data().totalBudget || 0;
-
+      // קבלת כל הקטגוריות של הקבוצה כדי לבדוק את סכום התקציבים של שאר הקטגוריות
       const categoriesSnap = await getDocs(
-        collection(db, "groups", groupId, "categories")
+        collection(db, "groups", groupId, "categories"),
       );
+      // סכום התקציבים של שאר הקטגוריות (לא כולל זו שמעדכנים)
       const otherSum = categoriesSnap.docs.reduce((sum, doc) => {
-        if (doc.id !== categoryId) return sum + (doc.data().budget || 0);
-        return sum;
+        if (doc.data().isTemporary) return sum; // לא סופרים קטגוריות מיוחדות
+        if (doc.id !== categoryId) return sum + (doc.data().budget || 0); // סופרים רק קטגוריות רגילות אחרות
+        return sum; // לא סופרים את הקטגוריה שמעדכנים
       }, 0);
-
+      // בדיקה אם התקציב החדש יחד עם סכום שאר הקטגוריות חורג מהתקציב הכולל של הקבוצה
       if (otherSum + parsed > totalGroupBudget) {
         Alert.alert("שגיאה", "חורג מהתקציב הכולל של הקבוצה.");
         return;
       }
-
+      // עדכון התקציב במסד הנתונים
       await updateDoc(doc(db, "groups", groupId, "categories", categoryId), {
         budget: parsed,
       });
+      // עדכון התקציב במצב המקומי כדי שהמסך יתעדכן מיד
       Alert.alert("הצלחה", "התקציב עודכן בהצלחה");
       setCategory((prev) => ({ ...prev, budget: parsed }));
     } catch (error) {
@@ -142,27 +144,27 @@ const CategoryDetails = () => {
     }
     setShowBudgetModal(false);
   };
-
+  // מחיקת קטגוריה וכל ההוצאות שבתוכה
   const deleteCategory = async () => {
     try {
       const expensesRef = collection(db, "groups", groupId, "expenses");
       const q = query(expensesRef, where("categoryId", "==", categoryId));
       const querySnapshot = await getDocs(q);
-
+      // מחיקת כל ההוצאות של הקטגוריה
       const deletePromises = querySnapshot.docs.map((docSnap) =>
-        deleteDoc(docSnap.ref)
+        deleteDoc(docSnap.ref),
       );
       await Promise.all(deletePromises);
-
+      // מחיקת הקטגוריה עצמה
       await deleteDoc(doc(db, "groups", groupId, "categories", categoryId));
-
+      // חזרה למסך הקודם אחרי המחיקה
       Alert.alert("בוצע", "הקטגוריה וכל ההוצאות נמחקו");
     } catch (error) {
       console.error("שגיאה במחיקת קטגוריה:", error);
       Alert.alert("שגיאה", "מחיקת הקטגוריה נכשלה.");
     }
   };
-
+  // מחיקת הוצאה ספציפית (רק למנהלים)
   const deleteExpense = async (id) => {
     if (!isAdmin) {
       Alert.alert("שגיאה", "רק מנהלים יכולים למחוק הוצאות.");
@@ -176,7 +178,7 @@ const CategoryDetails = () => {
       Alert.alert("שגיאה", "מחיקת ההוצאה נכשלה.");
     }
   };
-
+  // הצגת מסך טעינה בזמן שהנתונים נטענים מהמסד
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -185,7 +187,7 @@ const CategoryDetails = () => {
       </View>
     );
   }
-
+  // אם הקטגוריה לא נמצאה (ייתכן ונמחקה), מציג הודעה מתאימה
   if (!category) {
     return (
       <View style={styles.centered}>
@@ -273,7 +275,7 @@ const CategoryDetails = () => {
                             .toDate()
                             .toLocaleDateString("he-IL")
                         : new Date(category.eventEndDate).toLocaleDateString(
-                            "he-IL"
+                            "he-IL",
                           )}
                     </Text>
                   )}
@@ -403,7 +405,7 @@ const CategoryDetails = () => {
                         setIsRegular(val);
                         await updateDoc(
                           doc(db, "groups", groupId, "categories", categoryId),
-                          { isRegular: val }
+                          { isRegular: val },
                         );
                       }}
                     />
@@ -431,7 +433,7 @@ const CategoryDetails = () => {
                             style: "destructive",
                             onPress: deleteCategory,
                           },
-                        ]
+                        ],
                       )
                     }
                     activeOpacity={0.85}

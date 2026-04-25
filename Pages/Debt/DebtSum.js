@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useTheme, useNavigation } from "@react-navigation/native";
+import { useNavigation, useTheme } from "@react-navigation/native";
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useCurrency } from "../../Utilities/Currency";
 
+// קומפוננטה שמציגה את סיכום החובות של המשתמש הנוכחי בקבוצה ומאפשרת לנווט לפרטים נוספים
 const DebtSum = ({ groupId, userId, membersData, expenses }) => {
   const { colors } = useTheme();
   const navigation = useNavigation();
@@ -35,7 +36,8 @@ const DebtSum = ({ groupId, userId, membersData, expenses }) => {
 
     // כמה המשתמש הספציפי חייב או צריך לקבל
     const myBalance = (spentMap[userId] || 0) - share;
-
+    // myBalance אם ה
+    // של המשתמש שלילי, הוא חייב כסף (חוב), אם הוא חיובי, הוא צריך לקבל כסף
     if (myBalance < 0) {
       setMyDebt(Math.abs(myBalance));
       setMyCredit(0);
@@ -57,7 +59,9 @@ const DebtSum = ({ groupId, userId, membersData, expenses }) => {
           })
         }
       >
-        <Text style={[styles.title, { color: colors.text }]}>מצב החובות שלך</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          מצב החובות שלך
+        </Text>
         <Text style={{ color: myDebt > 0 ? colors.danger : colors.text }}>
           יש לך חוב: {formatCurrency(myDebt)}
         </Text>
@@ -79,11 +83,11 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
-  title: { 
-    fontWeight: "bold", 
+  title: {
+    fontWeight: "bold",
     fontSize: 16,
-     marginBottom: 10
-    },
+    marginBottom: 10,
+  },
 });
 
 export default DebtSum;

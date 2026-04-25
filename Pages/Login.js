@@ -1,4 +1,3 @@
-import { FontAwesome } from "@expo/vector-icons";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Facebook from "expo-auth-session/providers/facebook";
 import * as Google from "expo-auth-session/providers/google";
@@ -76,7 +75,7 @@ function Login({ navigation }) {
           await setDoc(
             doc(db, "users", res.user.uid),
             { lastLogin: serverTimestamp() },
-            { merge: true }
+            { merge: true },
           );
           console.log("Firebase User:", res.user.uid);
           navigation.replace("Home", { userId: res.user.uid });
@@ -98,14 +97,14 @@ function Login({ navigation }) {
       const { authentication } = fbResponse;
       const auth = getAuth();
       const credential = FacebookAuthProvider.credential(
-        authentication.accessToken
+        authentication.accessToken,
       );
       signInWithCredential(auth, credential)
         .then(async (res) => {
           await setDoc(
             doc(db, "users", res.user.uid),
             { lastLogin: serverTimestamp() },
-            { merge: true }
+            { merge: true },
           );
           Alert.alert("התחברת בהצלחה עם Facebook");
         })
@@ -113,28 +112,42 @@ function Login({ navigation }) {
     }
   }, [fbResponse]);
 
-  // התחברות רגילה
+  // פונקציה להתחברות עם אימייל וסיסמה - בודקת שהשדות מלאים, מנסה להתחבר עם
+  // Firebase Authentication,
+  //  ומטפלת בשגיאות בצורה מפורטת לפי קוד השגיאה שמגיע מ
+  // Firebase.
   const login = async () => {
+    // איפוס הודעות שגיאה לפני ניסיון התחברות חדש
     setError("");
+    // בדיקה בסיסית שהמשתמש מילא גם מייל וגם סיסמה לפני ניסיון התחברות
     if (!email || !password) {
       setError("נא למלא גם מייל וגם סיסמה");
       return;
     }
+    // התחלת תהליך התחברות - מציגים את ה-ActivityIndicator
     setIsLoading(true);
+    // ניסיון התחברות עם Firebase Authentication
     try {
       const auth = getAuth();
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
-        password
+        password,
       );
       const user = userCredential.user;
+      // עדכון שדה
+      // lastLogin
+      //  בבסיס הנתונים עם הזמן הנוכחי
       await setDoc(
         doc(db, "users", user.uid),
         { lastLogin: serverTimestamp() },
-        { merge: true }
-      )
+        { merge: true },
+      );
+      // ניווט למסך הבית עם העברת
+      // userId
     } catch (firebaseError) {
+      // טיפול שגיאות מפורט לפי קוד השגיאה שמגיע מ
+      // Firebase Authentication
       console.error(firebaseError);
       switch (firebaseError.code) {
         case "auth/invalid-email":
@@ -156,17 +169,20 @@ function Login({ navigation }) {
     }
   };
 
-  // שחזור סיסמה
+  // פונקציה לשחזור סיסמה - שולחת מייל עם הוראות לשחזור הסיסמה
   const forgotPassword = async () => {
     if (!email) {
       Alert.alert("שחזור סיסמה", "נא להזין כתובת מייל לשחזור");
       return;
     }
     try {
+      // שליחת מייל לשחזור סיסמה עם
+      // Firebase Authentication
       const auth = getAuth();
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
       Alert.alert("נשלח!", "הודעת שחזור סיסמה נשלחה אליך למייל");
     } catch (error) {
+      // טיפול שגיאות מפורט לפי קוד השגיאה שמגיע מ
       switch (error.code) {
         case "auth/invalid-email":
           Alert.alert("שגיאה", "כתובת המייל אינה תקינה");
@@ -181,11 +197,15 @@ function Login({ navigation }) {
   };
 
   return (
+    // שימוש ב-
+    // KeyboardAvoidingView ו-ScrollView
+    // כדי לוודא שהמסך מתנהג טוב גם כשהמקלדת פתוחה, במיוחד במכשירים קטנים
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 20}
     >
+      {/* ScrollView עם contentContainerStyle שמרכז את התוכן ומוסיף ריפוד אנכי */}
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -194,7 +214,7 @@ function Login({ navigation }) {
           <Text style={styles.title}>כניסה</Text>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
+          {/* שדות קלט לאימייל ולסיסמה, עם עיצוב מתאים, והצגת הודעות שגיאה מתאימות */}
           <TextInput
             style={styles.input}
             placeholder="אימייל"
@@ -217,7 +237,7 @@ function Login({ navigation }) {
             placeholderTextColor="#a0aecf"
             textAlign="right"
           />
-
+          {/* כפתור לשחזור סיסמה, כפתור התחברות, עם עיצוב מתאים */}
           <TouchableOpacity
             onPress={forgotPassword}
             style={styles.forgotButton}
@@ -237,15 +257,15 @@ function Login({ navigation }) {
             )}
           </TouchableOpacity>
 
-          {/* מפריד */}
+          {/* מפריד
           <View style={styles.separatorContainer}>
             <View style={styles.separatorLine} />
             <Text style={styles.separatorText}>או</Text>
             <View style={styles.separatorLine} />
-          </View>
+          </View> */}
 
           {/* Google/Facebook */}
-          <View style={styles.socialContainer}>
+          {/* <View style={styles.socialContainer}>
             <TouchableOpacity
               style={[styles.iconButton, { backgroundColor: "#DB4437" }]}
               disabled={!request}
@@ -261,8 +281,9 @@ function Login({ navigation }) {
             >
               <FontAwesome name="facebook" size={28} color="#fff" />
             </TouchableOpacity>
-          </View>
+          </View> */}
 
+          {/* קישור להרשמה למשתמשים שאין להם חשבון, עם ניווט למסך ההרשמה */}
           <TouchableOpacity
             onPress={() => navigation.navigate("Register")}
             style={styles.linkButton}

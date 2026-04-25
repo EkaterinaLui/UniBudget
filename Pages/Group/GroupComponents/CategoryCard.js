@@ -24,7 +24,7 @@ const CategoryCard = ({
   // כפתור "הוספה" רגיל - רק למנהל
   if (item.isAddButton && !item.isTemporaryAddButton) {
     if (!isAdmin) return null;
-
+    // כרטיס מיוחד שמופיע רק למנהלים ומאפשר להוסיף קטגוריות חדשות לקבוצה
     return (
       <TouchableOpacity
         style={[
@@ -91,7 +91,7 @@ const CategoryCard = ({
 
   const isOverBudget = spent > budget;
 
-  // אחוז התקדמות (אם budget=0 לא יזרוק NaN)
+  // חישוב אחוז ההתקדמות - אם התקציב הוא 0, נחשב את ההתקדמות כ-0% כדי להימנע מחלוקה באפס
   const progress = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
 
   return (

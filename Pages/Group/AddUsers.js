@@ -51,9 +51,9 @@ function AddUsers({ navigation, route }) {
     return () => unsubscribe();
   }, [groupId]);
 
-  const handleGoBack = () => navigation.goBack();
-
-  const handleAddUser = async () => {
+  const goBack = () => navigation.goBack();
+  // פונקציה להוספת משתמש לקבוצה
+  const addUser = async () => {
     if (!userCodeInput.trim()) {
       Alert.alert("שגיאה", "נא להזין קוד משתמש");
       return;
@@ -64,38 +64,36 @@ function AddUsers({ navigation, route }) {
     }
 
     setIsAddingUser(true);
+    // מחפשים את המשתמש לפי קוד ייחודי שלו בבסיס הנתונים
     try {
       const usersRef = collection(db, "users");
       const q = query(
         usersRef,
-        where("uniqueCode", "==", userCodeInput.trim())
+        where("uniqueCode", "==", userCodeInput.trim()),
       );
       const querySnapshot = await getDocs(q);
-
+      // אם לא נמצא משתמש עם הקוד הזה, מציגים הודעת שגיאה
       if (querySnapshot.empty) {
         Alert.alert("שגיאה", "לא נמצא משתמש עם הקוד הזה");
         return;
       }
-
+      // אם נמצא, מוסיפים אותו למערך החברים של הקבוצה בבסיס הנתונים
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
       const foundUserId = userDoc.id;
-
+      // בודקים אם המשתמש כבר חבר בקבוצה כדי למנוע הוספה כפולה
       if (currentMembers.some((m) => m.uid === foundUserId)) {
         Alert.alert("שים לב", "המשתמש כבר נמצא בקבוצה");
         return;
       }
-
+      // מוסיפים את המשתמש לקבוצה על ידי עדכון המסמך של הקבוצה בבסיס הנתונים
       const groupDocRef = doc(db, "groups", groupId);
       await updateDoc(groupDocRef, {
         members: arrayUnion({ uid: foundUserId, name: userData.name }),
         memberIds: arrayUnion(foundUserId),
       });
 
-      Alert.alert(
-        "הצלחה",
-        `${userData.name} נוסף/ה לקבוצה`
-      );
+      Alert.alert("הצלחה", `${userData.name} נוסף/ה לקבוצה`);
       setUserCodeInput("");
     } catch (error) {
       console.error("שגיאה בהוספה:", error);
@@ -123,7 +121,7 @@ function AddUsers({ navigation, route }) {
       >
         <View style={styles.container}>
           {/* כפתור חזור */}
-          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+          <TouchableOpacity onPress={goBack} style={styles.backButton}>
             <Ionicons
               name="arrow-forward"
               size={30}
@@ -164,7 +162,7 @@ function AddUsers({ navigation, route }) {
                     : colors.addUsersPrimaryDisabled,
               },
             ]}
-            onPress={handleAddUser}
+            onPress={addUser}
             disabled={!userCodeInput.trim() || isAddingUser}
           >
             {isAddingUser ? (

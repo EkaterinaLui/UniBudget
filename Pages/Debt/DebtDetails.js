@@ -13,14 +13,20 @@ import {
 import { db } from "../../firebase";
 import { useCurrency } from "../../Utilities/Currency";
 
+// דף המציג את פירוט החובות של המשתמש
 const DebtDetails = () => {
+  // שימוש בתמות של הניווט כדי לקבל את הצבעים הנוכחיים של האפליקציה
   const { colors } = useTheme();
+  // שימוש בניווט כדי לנווט חזרה למסך הקודם
   const navigation = useNavigation();
   const route = useRoute();
+  // שימוש בנתונים שנשלחו כפרמטרים מהמסך הקודם (groupId, userId, membersData, expenses, allUsers)
   const { groupId, userId, membersData, expenses, allUsers } = route.params;
+  // שימוש בהוק של מטבע כדי לעצב את הסכומים בצורה נכונה לפי המטבע הנבחר
   const formatCurrency = useCurrency();
-
+  // רשימה של חובות המשתמש לאחר חישוב
   const [debtsList, setDebtsList] = useState([]);
+  // רשימה של חובות שכבר סגורים כדי לעדכן את החישובים בהתאם
   const [settledDebts, setSettledDebts] = useState([]);
 
   // מאזין לחובות סגורים
@@ -46,12 +52,12 @@ const DebtDetails = () => {
     // כמה כל אחד צריך לשלם
     const share = total / membersData.length;
 
-    // כמה בפועל הוציא כל משתמש
+    // חישוב כמה כל משתמש הוציא בפועל על ידי סינון ההוצאות לפי מזהה המשתמש וסכימת הסכומים
     let balances = {};
     membersData.forEach((m) => {
       balances[m.uid] = 0;
     });
-
+    // חישוב כמה כל משתמש הוציא בפועל על ידי סינון ההוצאות לפי מזהה המשתמש וסכימת הסכומים
     expenses.forEach((e) => {
       balances[e.userId] = (balances[e.userId] || 0) + (e.amount || 0);
     });
@@ -66,14 +72,15 @@ const DebtDetails = () => {
       balances[s.fromUser] += s.amount;
       balances[s.toUser] -= s.amount;
     });
-
+    // חישוב יחסי חוב בין המשתמשים
     const myBalance = balances[userId] || 0;
     let relations = [];
-
+    // השוואת היתרה שלי עם כל משתמש אחר כדי לקבוע מי חייב למי וכמה
     membersData.forEach((m) => {
+      // לא משווים את המשתמש עם עצמו
       if (m.uid === userId) return;
       const otherBalance = balances[m.uid] || 0;
-
+      // אם אני חייב למישהו אחר, או שמישהו אחר חייב לי, נוצר קשר חוב בין שנינו
       if (myBalance < 0 && otherBalance > 0) {
         const amount = Math.min(Math.abs(myBalance), otherBalance);
         relations.push({
@@ -83,7 +90,7 @@ const DebtDetails = () => {
           amount,
         });
       }
-
+      // אם מישהו אחר חייב לי, או שאני חייב למישהו אחר, נוצר קשר חוב בין שנינו
       if (myBalance > 0 && otherBalance < 0) {
         const amount = Math.min(myBalance, Math.abs(otherBalance));
         relations.push({
@@ -94,22 +101,24 @@ const DebtDetails = () => {
         });
       }
     });
-
+    // עדכון רשימת החובות עם הקשרים החדשים שחושבו
     setDebtsList(relations);
   }, [expenses, membersData, userId, allUsers, settledDebts]);
 
   // סגירת חוב יחיד
   const closeSingleDebt = async (debt) => {
     try {
+      // הוספת רשומה של החוב הסגור לבסיס הנתונים
       await addDoc(collection(db, "groups", groupId, "settledDebts"), {
         fromUser: userId,
         toUser: debt.to,
         amount: debt.amount,
         settledAt: Timestamp.now(),
       });
-
+      // הצגת התראה שהחוב נסגר בהצלחה
       Alert.alert("הצלחה", `החוב ל־${debt.name} נסגר בהצלחה`);
     } catch (error) {
+      // טיפול בשגיאות בעת סגירת החוב והצגת התראה מתאימה
       console.error("Error closing debt:", error);
       Alert.alert("שגיאה", "סגירת החוב נכשלה");
     }

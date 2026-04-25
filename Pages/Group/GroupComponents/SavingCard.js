@@ -1,9 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const screenWidth = Dimensions.get("window").width;
-
+// כרטיס המציג יעד חיסכון בתוך הקבוצה, עם אפשרות להוסיף יעד חדש
 const SavingCard = ({
   item,
   navigation,
@@ -12,6 +17,7 @@ const SavingCard = ({
   colors,
   formatCurrency,
 }) => {
+  // אם האובייקט הוא כפתור הוספה, מציג כרטיס מיוחד שמאפשר להוסיף יעד חיסכון חדש
   if (item.isAddButton) {
     return (
       <TouchableOpacity
@@ -25,9 +31,10 @@ const SavingCard = ({
       </TouchableOpacity>
     );
   }
-
+  // חישוב אחוז ההתקדמות לעומת היעד
   const progress =
     item.targetAmount > 0 ? (item.currentAmount / item.targetAmount) * 100 : 0;
+  // קביעת צבע של פס ההתקדמות בהתאם לאחוז שהושג
   let progressColor = colors.danger;
   if (progress >= 80) progressColor = colors.success || "green";
   else if (progress >= 50) progressColor = colors.warning || "orange";
@@ -87,7 +94,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   name: {
-   fontSize: 16,
+    fontSize: 16,
     fontWeight: "bold",
     textAlign: "left",
   },

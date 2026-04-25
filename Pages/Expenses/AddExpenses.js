@@ -25,12 +25,13 @@ import { db } from "../../firebase";
 import { budgetExceeded } from "../../Utilities/groupNotific";
 import { SettingsContext } from "../../Utilities/SettingsContext";
 
+// דף הוספת הוצאה חדשה לקטגוריה מסוימת
 const AddExpenses = () => {
+  // ניווט, נושא, הגדרות, פרמטרים ועוד
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-
 
   const { settings } = useContext(SettingsContext);
 
@@ -44,7 +45,7 @@ const AddExpenses = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  //  טוען שם הקטגוריה 
+  // טעינת שם הקטגוריה
   useEffect(() => {
     if (!groupId || !initialCategoryId) {
       Alert.alert("שגיאה", "פרטי הקבוצה או הקטגוריה חסרים.");
@@ -59,7 +60,7 @@ const AddExpenses = () => {
           "groups",
           groupId,
           "categories",
-          initialCategoryId
+          initialCategoryId,
         );
         const docSnap = await getDoc(categoryRef);
 
@@ -81,91 +82,91 @@ const AddExpenses = () => {
     fetchCategoryName();
   }, [groupId, initialCategoryId, navigation]);
 
-  //  בדיקה אם חרגו מהתקציב (קבוצתי או קטגוריה)
+  // פונקציה לבדוק חריגה בתקציב אחרי הוספת הוצאה
   const checkBudgetAndNotify = async () => {
-     try {
-    // טוען הגדרות מעודכנות ממסד הנתונים
-    const settingsSnap = await getDoc(doc(db, "settings", userId));
-    const settingsData = settingsSnap.exists() ? settingsSnap.data() : null;
+    try {
+      // טעינת הגדרות המשתמש כדי לבדוק אם ההתרעה על חריגת תקציב פעילה
+      const settingsSnap = await getDoc(doc(db, "settings", userId));
+      const settingsData = settingsSnap.exists() ? settingsSnap.data() : null;
 
-    // בדיקה האם בכלל ההתרעה פעילה
-    if (!settingsData?.notifications?.budgetLimit)  return;
+      // אם ההתרעה לא פעילה, לא צריך לבדוק חריגה
+      if (!settingsData?.notifications?.budgetLimit) return;
 
-    // מבקש הרשאות אם אין
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== "granted") {
-      const request = await Notifications.requestPermissionsAsync();
-      if (request.status !== "granted") {
-        console.log("אין הרשאה לשליחת התראות");
-        return;
+      // בדיקה אם יש הרשאה לשליחת התראות, ואם לא, מבקשים הרשאה
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") {
+        const request = await Notifications.requestPermissionsAsync();
+        if (request.status !== "granted") {
+          console.log("אין הרשאה לשליחת התראות");
+          return;
+        }
       }
-    }
-
+      // טעינת נתוני הקבוצה כדי לבדוק את התקציב הכולל והתקציב של הקטגוריה
       const groupRef = doc(db, "groups", groupId);
       const groupSnap = await getDoc(groupRef);
-
+      // אם הקבוצה לא קיימת, לא ממשיכים
       if (!groupSnap.exists()) return;
       const groupData = groupSnap.data();
-
-      // סך הוצאות של הקבוצה
+      // סכום כל ההוצאות בקבוצה (כולל ההוצאה החדשה שהוספנו)
       const expSnap = await getDocs(
-        collection(db, "groups", groupId, "expenses")
+        collection(db, "groups", groupId, "expenses"),
       );
       const totalExpenses = expSnap.docs.reduce(
         (sum, e) => sum + (e.data().amount || 0),
-        0
+        0,
       );
-
+      // בדיקה אם התקציב הכולל עבר את הגבול
       if (totalExpenses > (groupData.totalBudget || 0)) {
         await budgetExceeded(
           db,
           groupId,
-          "סכום ההוצאות עבר את גבול התקציב הכולל!"
+          "סכום ההוצאות עבר את גבול התקציב הכולל!",
         );
       }
 
-      // בדיקה לקטגוריה
+      // בדיקה אם התקציב של הקטגוריה עבר את הגבול
       const catRef = doc(
         db,
         "groups",
         groupId,
         "categories",
-        initialCategoryId
+        initialCategoryId,
       );
+      // סכום ההוצאות בקטגוריה זו (כולל ההוצאה החדשה שהוספנו)
       const catSnap = await getDoc(catRef);
       if (catSnap.exists()) {
         const catData = catSnap.data();
-
         const catExpenses = expSnap.docs
           .filter((e) => e.data().categoryId === initialCategoryId)
           .reduce((sum, e) => sum + (e.data().amount || 0), 0);
-
+        // אם ההוצאות בקטגוריה זו עברו את התקציב שלה, שולחים התראה
         if (catExpenses > (catData.budget || 0)) {
-           await budgetExceeded(
-              db,
-              groupId,
-              `הוצאות בקטגוריה "${catData.name}" עברו את התקציב שלה!`
-            );
+          await budgetExceeded(
+            db,
+            groupId,
+            `הוצאות בקטגוריה "${catData.name}" עברו את התקציב שלה!`,
+          );
         }
       }
+      // אם יש שגיאה כלשהי בתהליך, מדפיסים אותה לקונסול
     } catch (error) {
       console.error("שגיאה בבדיקת חריגה:", error);
     }
   };
 
-  //  שמירה של ההוצאה
+  // פונקציה להוספת הוצאה חדשה
   const addExpense = async () => {
     if (!amount || isNaN(parseFloat(amount))) {
       Alert.alert("שגיאה", "אנא הזן סכום תקין.");
       return;
     }
-
     if (!initialCategoryId) {
       Alert.alert("שגיאה", "לא ניתן היה לקבוע את הקטגוריה.");
       return;
     }
 
     setIsSaving(true);
+    // מוסיפים את ההוצאה החדשה לבסיס הנתונים
     try {
       await addDoc(collection(db, "groups", groupId, "expenses"), {
         amount: parseFloat(amount),
@@ -199,7 +200,15 @@ const AddExpenses = () => {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top , backgroundColor: colors.categoryDetailsBackground}]}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top,
+          backgroundColor: colors.categoryDetailsBackground,
+        },
+      ]}
+    >
       {/* חזור */}
       <TouchableOpacity
         style={[styles.backButton, { top: insets.top + 10 }]}
@@ -209,19 +218,23 @@ const AddExpenses = () => {
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.title, { color: colors.text}] }>הוסף הוצאה</Text>
+        <Text style={[styles.title, { color: colors.text }]}>הוסף הוצאה</Text>
 
         {/* מידע על הקטגוריה */}
         <View style={styles.categoryInfo}>
-          <Text style={[styles.categoryLabel, { color: colors.text }]}>קטגוריה:</Text>
-          <Text style={[styles.categoryNameText, { color: colors.text }]}>{categoryName}</Text>
+          <Text style={[styles.categoryLabel, { color: colors.text }]}>
+            קטגוריה:
+          </Text>
+          <Text style={[styles.categoryNameText, { color: colors.text }]}>
+            {categoryName}
+          </Text>
         </View>
 
         {/* סכום */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>סכום הוצאה ({currencySymbol})</Text>
           <TextInput
-            style={[styles.input, {backgroundColor: colors.inputAddEx}]}
+            style={[styles.input, { backgroundColor: colors.inputAddEx }]}
             placeholder={`0.00 ${currencySymbol}`}
             keyboardType="numeric"
             value={amount}
@@ -233,7 +246,7 @@ const AddExpenses = () => {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>תיאור (אופציונלי)</Text>
           <TextInput
-            style={[styles.input, {backgroundColor: colors.inputAddEx}]}
+            style={[styles.input, { backgroundColor: colors.inputAddEx }]}
             placeholder="תיאור"
             value={description}
             onChangeText={setDescription}
@@ -242,7 +255,11 @@ const AddExpenses = () => {
 
         {/* כפתור שמירה */}
         <TouchableOpacity
-          style={[styles.button, isSaving && styles.buttonDisabled,  { backgroundColor: colors.primary }]}
+          style={[
+            styles.button,
+            isSaving && styles.buttonDisabled,
+            { backgroundColor: colors.primary },
+          ]}
           onPress={addExpense}
           disabled={isSaving}
         >

@@ -1,4 +1,7 @@
-// Theme.js
+// קובץ זה מגדיר את ערכות הצבעים המותאמות לאפליקציה עבור מצבי תאורה בהיר וכהה
+// כל ערכת צבעים מכילה צבעים שונים עבור
+// רקעים, טקסטים, כרטיסים, כפתורים ועוד,
+// כדי להבטיח חווית משתמש עקבית ונעימה בכל מצב תאורה
 import { DarkTheme, DefaultTheme } from "@react-navigation/native";
 
 export const CustomLightTheme = {
@@ -382,5 +385,4 @@ export const CustomDarkTheme = {
     helpSupportButtonText: "#000000",
     helpVersion: "#aaaaaa",
   },
-
 };

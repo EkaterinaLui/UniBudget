@@ -29,6 +29,9 @@ import { assignUniqueColors } from "../Utilities/chartColors";
 
 const screenWidth = Dimensions.get("window").width;
 
+// דף הדוחות שמציג גרפים וסטטיסטיקות על ההוצאות בקבוצה לפי חודש ושנה נבחרים
+// משתמש את הנתונים מה-Firestore כדי לחשב ולהציג את הדוחות בצורה ויזואלית עם גרפים שונים
+// מאפשר לבחור קבוצה, חודש ושנה כדי לראות את הדוחות הרלוונטיים לאותה תקופה וקבוצה
 const months = [
   "ינאור",
   "פברואר",
@@ -48,24 +51,35 @@ const months = [
 const currentMonthName = months[new Date().getMonth()];
 const currentYearName = new Date().getFullYear();
 
+// קומפוננטה הראשית של דף הדוחות
 const Report = () => {
-
+  // משתמש נוכחי
   const user = auth.currentUser;
+  // שימוש בתמות של הניווט כדי לקבל את הצבעים הנוכחיים של האפליקציה
   const { colors } = useTheme();
+  // שימוש בהוק של מטבע כדי לעצב את הסכומים בצורה נכונה לפי המטבע הנבחר
   const formatCurrency = useCurrency();
+  // סטייטים לניהול נתונים ובחירות של המשתמש
   const [groups, setGroups] = useState([]);
+  // הקבוצה שנבחרה כרגע
   const [selectedGroup, setSelectedGroup] = useState(null);
+  // בחירת חודש ושנה כברירת מחדל לחודש הנוכחי
   const [selectedMonth, setSelectedMonth] = useState(currentMonthName);
   const [selectedYear, setSelectedYear] = useState(currentYearName);
+  // סטייטים לנתונים של הגרפים
   const [groupPicker, setGroupPicker] = useState(false);
   const [monthPicker, setMonthPicker] = useState(false);
   const [yearPicker, setYearPicker] = useState(false);
+  //Firestore סטייט לטעינה בזמן שהנתונים נטענים מה
   const [loading, setLoading] = useState(false);
   const [barData, setBarData] = useState(null);
+  // נתונים לעוגות ולגרפים השונים
   const [pieDataCategories, setPieDataCategories] = useState([]);
   const [pieDataBalance, setPieDataBalance] = useState([]);
   const [pieDataUsers, setPieDataUsers] = useState([]);
+  // נתונים לקו של הוצאות יומיות
   const [lineDataUsers, setLineDataUsers] = useState(null);
+  // נתונים לניצול תקציב
   const [progressData, setProgessData] = useState(null);
 
   // הגדרות גרפים (צבע רקע, צבע טקסט וכו')
@@ -73,10 +87,10 @@ const Report = () => {
     backgroundGradientFrom: colors.reportBackground,
     backgroundGradientTo: colors.reportBackground,
 
-
+    // פונקציה שמחזירה צבע עם שקיפות לפי הצבע של הטקסט בדוחות
     color: (opacity = 1) =>
       `${colors.reportText}${Math.floor(opacity * 255).toString(16)}`,
-
+    // צבע לצבעים של העוגות והברים
     barPercentage: 0.5,
     useShadowColorFromDataset: false,
   };
@@ -95,7 +109,7 @@ const Report = () => {
       const groupNames = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((group) =>
-          group.members?.some((member) => member.uid === user.uid)
+          group.members?.some((member) => member.uid === user.uid),
         )
         .map((group) => ({
           id: group.id,
@@ -112,7 +126,6 @@ const Report = () => {
 
     loadGroups();
   }, [user, selectedGroup]);
-
 
   //  טעינת נתונים לגרפים לפי חודש/שנה/קבוצה
 
@@ -150,23 +163,25 @@ const Report = () => {
           monthIndex === new Date().getMonth();
 
         if (isCurrentMonth) {
-
           // חודש נוכחי - Firestore Live Data
-
+          // יוצרים שאילתה שמביאה רק הוצאות שנוצרו בתוך החודש הנבחר
+          // זה חשוב כדי לא להביא את כל ההוצאות של הקבוצה ולחשב עליהן, אלא רק את אלה שרלוונטיות לחודש הנבחר
+          // Timestamp השאילתה משתמשת ב
+          //  כדי להשוות את תאריך היצירה של ההוצאות עם גבולות החודש
           const expensesQ = query(
             collection(db, "groups", groupId, "expenses"),
             where("createdAt", ">=", Timestamp.fromDate(startOfMonth)),
-            where("createdAt", "<=", Timestamp.fromDate(endOfMonth))
+            where("createdAt", "<=", Timestamp.fromDate(endOfMonth)),
           );
 
           expensesSnap = await getDocs(expensesQ);
 
           categoriesSnap = await getDocs(
-            collection(db, "groups", groupId, "categories")
+            collection(db, "groups", groupId, "categories"),
           );
 
           savingsSnap = await getDocs(
-            collection(db, "groups", groupId, "savings")
+            collection(db, "groups", groupId, "savings"),
           );
 
           // קריאת התקציב הכולל של הקבוצה
@@ -174,7 +189,6 @@ const Report = () => {
           const groupData = groupSnap.data();
           totalBudget = groupData?.totalBudget || 0;
         } else {
-
           // חודש קודם - נתונים מהארכיון
 
           const archiveId = getArchiveId(year, monthIndex + 1);
@@ -207,23 +221,21 @@ const Report = () => {
         // הערה: בחודשים עם 30/28 ימים יהיו פשוט ימים עם 0 הוצאות
         const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
-
         // BarChart: סכום הוצאות לכל יום
 
         const dailyTotals = days.map((day) =>
           allExpenses
             .filter((e) => e.createdAt?.toDate().getDate() === day)
-            .reduce((sum, e) => sum + (e.amount || 0), 0)
+            .reduce((sum, e) => sum + (e.amount || 0), 0),
         );
-
+        // יוצרים נתונים לגרף העמודות עם התגים של הימים והסכומים היומיים
         const newBarData = {
           labels: days.filter((d) => d % 5 === 0).map(String),
           datasets: [{ data: dailyTotals }],
         };
 
-
         // PieChart קטגוריות/חיסכון: סכום לכל id
- 
+
         const categoriesTotal = {};
         allExpenses.forEach((e) => {
           if (e.categoryId) {
@@ -249,40 +261,38 @@ const Report = () => {
               name: category?.name
                 ? category.name
                 : saving?.name
-                ? `חיסכון - ${saving.name}`
-                : "ללא קטגוריות",
+                  ? `חיסכון - ${saving.name}`
+                  : "ללא קטגוריות",
               population: value,
 
               // אם לקטגוריה יש צבע שמור - נעדיף אותו
               // אחרת assignUniqueColors יבחר צבע ייחודי
               preferredColor: category?.color || null,
             };
-          }
+          },
         );
 
         // נותן צבעים ייחודיים כדי להימנע מצבעים שחוזרים
         const newPieDataCategories = assignUniqueColors(
           rawPieCategories,
           (x) => x.id,
-          (x) => x.preferredColor
+          (x) => x.preferredColor,
         ).map(({ preferredColor, ...rest }) => rest);
-
 
         // PieChart "תקציב מול הוצאות": מוסיפים "יתרה"
 
         const totalExpenses = allExpenses.reduce(
           (s, e) => s + (e.amount || 0),
-          0
+          0,
         );
 
         // יתרה לא יכולה להיות שלילית (אם עברנו תקציב - נשים 0)
         const profit = Math.max(totalBudget - totalExpenses, 0);
-
+        // הנתונים לעוגת תקציב מול הוצאות: הוצאות ויתרה
         const newPieDataBalance = [
           ...newPieDataCategories,
           { name: "יתרה", population: profit, color: "#4caf50" },
         ];
-
 
         // PieChart משתמשים: סכום הוצאות לכל userId
 
@@ -300,24 +310,24 @@ const Report = () => {
         });
 
         // יוצרים נתונים לעוגת משתמשים
-        const rawPieUsers = Object.entries(usersTotal).map(([userId, value]) => ({
-          id: userId,
-          name: users[userId] || "ללא משתמש",
-          population: value,
-        }));
+        const rawPieUsers = Object.entries(usersTotal).map(
+          ([userId, value]) => ({
+            id: userId,
+            name: users[userId] || "ללא משתמש",
+            population: value,
+          }),
+        );
 
         // צבעים ייחודיים למשתמשים
         const newPieDataUsers = assignUniqueColors(rawPieUsers, (x) => x.id);
 
-
         // LineChart: סכום הוצאות לכל יום (קו)
-   
         const dailyExpenseTotals = days.map((day) =>
           allExpenses
             .filter((e) => e.createdAt?.toDate().getDate() === day)
-            .reduce((sum, e) => sum + (e.amount || 0), 0)
+            .reduce((sum, e) => sum + (e.amount || 0), 0),
         );
-
+        // יוצרים נתונים לגרף הקו עם התגים של הימים והסכומים היומיים
         const newLineDataUsers = {
           labels: days.filter((d) => d % 5 === 0).map(String),
           datasets: [{ data: dailyExpenseTotals }],
@@ -325,11 +335,12 @@ const Report = () => {
 
         // ניצול תקציב: יחס הוצאות/תקציב
         // raw יכול להיות מעל 1 (לדוגמה 1.4 = 140%)
- 
+
         const rawProgress = totalBudget > 0 ? totalExpenses / totalBudget : 0;
         const progress = Math.min(rawProgress, 1);
 
         // שמירת נתונים ל-state כדי להציג UI
+        // חשוב לעשות את כל החישובים לפני שמעדכנים את הסטייטים כדי למנוע רינדורים מיותרים
         setBarData(newBarData);
         setPieDataCategories(newPieDataCategories);
         setPieDataBalance(newPieDataBalance);
@@ -339,14 +350,13 @@ const Report = () => {
       } catch (e) {
         console.error("Error loading data:", e);
       }
-
+      // בסוף הטעינה, גם אם הייתה שגיאה, נסיר את ה-
+      // Loading כדי לא להיתקע על המסך
       setLoading(false);
     };
 
     fetchData();
   }, [selectedGroup, selectedMonth, selectedYear, user]);
-
-
 
   return (
     <SafeAreaView
@@ -594,7 +604,7 @@ const Report = () => {
                           (item.population /
                             pieDataCategories.reduce(
                               (s, i) => s + i.population,
-                              0
+                              0,
                             )) *
                           100
                         ).toFixed(0)}
@@ -656,7 +666,7 @@ const Report = () => {
                           (item.population /
                             pieDataBalance.reduce(
                               (s, i) => s + i.population,
-                              0
+                              0,
                             )) *
                           100
                         ).toFixed(0)}
@@ -716,7 +726,10 @@ const Report = () => {
                         {item.name}: {formatCurrency(item.population)} (
                         {(
                           (item.population /
-                            pieDataUsers.reduce((s, i) => s + i.population, 0)) *
+                            pieDataUsers.reduce(
+                              (s, i) => s + i.population,
+                              0,
+                            )) *
                           100
                         ).toFixed(0)}
                         %)

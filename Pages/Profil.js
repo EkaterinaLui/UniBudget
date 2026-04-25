@@ -1,6 +1,12 @@
 import { useNavigation, useTheme } from "@react-navigation/native";
 import { signOut } from "firebase/auth";
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +19,7 @@ import {
 } from "react-native";
 import { db } from "../firebase";
 
+// דף הפרופיל של המשתמש שמציג את פרטי המשתמש ומאפשר לבצע פעולות כמו גיבוי ועריכה
 function Profil({ userId, auth }) {
   const navigation = useNavigation();
   const { colors } = useTheme();
@@ -25,7 +32,7 @@ function Profil({ userId, auth }) {
     if (!userId) return;
 
     const userDocRef = doc(db, "users", userId);
-
+    // מאזין לשינויים במסמך המשתמש ומעדכן את המידע בהתאם
     const unsubscribe = onSnapshot(
       userDocRef,
       (docSnap) => {
@@ -40,20 +47,21 @@ function Profil({ userId, auth }) {
         console.error("שגיאה בטעינת פרופיל:", error);
         setUserData({ error: "אירעה שגיאה בטעינת הפרופיל" });
         setIsLoading(false);
-      }
+      },
     );
 
     return () => unsubscribe();
   }, [userId]);
 
- const backupUserData = async () => {
+  // Firebase פונקציה שמבצעת גיבוי של נתוני המשתמש לאוסף נפרד ב
+  const backupUserData = async () => {
     if (!userId) return;
     setIsBackingUp(true);
-
+    // מנסה לקבל את נתוני המשתמש הנוכחי כדי לשמור אותם בגיבוי
     try {
       const userRef = doc(db, "users", userId);
       const userSnap = await getDoc(userRef);
-
+      // אם לא נמצאו נתונים, מציג התראה ושומר על המסך הנוכחי
       if (!userSnap.exists()) {
         Alert.alert("שגיאה", "לא נמצאו נתונים לגיבוי");
         return;
@@ -67,29 +75,32 @@ function Profil({ userId, auth }) {
 
       Alert.alert("הצלחה", "הגיבוי נשמר בהצלחה!");
     } catch (error) {
-console.error("שגיאה בגיבוי:", error);
-  navigation.navigate("Error", {
-    message: "אירעה שגיאה בעת ביצוע הגיבוי, אנא נסה שוב.",
-    onRetry: backupUserData,
-  });
+      // אם יש שגיאה במהלך הגיבוי, מציג התראה עם אפשרות לנסות שוב
+      console.error("שגיאה בגיבוי:", error);
+      navigation.navigate("Error", {
+        message: "אירעה שגיאה בעת ביצוע הגיבוי, אנא נסה שוב.",
+        onRetry: backupUserData,
+      });
     } finally {
       setIsBackingUp(false);
     }
   };
 
-
   // יציאה מהמערכת
   const logOut = async () => {
+    // מציג התראה לאישור לפני ביצוע הפעולה
     Alert.alert("התנתקות", "האם אתה בטוח שתרצה להתנתק?", [
       { text: "ביטול", style: "cancel" },
       {
         text: "התנתק",
+        // בעת אישור ההתנתקות, מנסה לבצע את הפעולה ולתפוס שגיאות אפשריות
         onPress: async () => {
           try {
             if (auth) {
               await signOut(auth);
             }
           } catch (error) {
+            // אם יש שגיאה בעת ההתנתקות, מציג התראה עם אפשרות לנסות שוב
             console.error("שגיאה ביציאה:", error);
             Alert.alert("שגיאה", "לא הצלחנו לנתק אותך, נסה שוב.");
           }
@@ -98,7 +109,7 @@ console.error("שגיאה בגיבוי:", error);
       },
     ]);
   };
-
+  // אם הנתונים עדיין נטענים, מציג מסך טעינה עם אינדיקטור
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -110,6 +121,7 @@ console.error("שגיאה בגיבוי:", error);
     );
   }
 
+  // אם יש שגיאה בטעינת הנתונים, מציג הודעת שגיאה למשתמש
   if (!userData || userData.error) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -130,10 +142,10 @@ console.error("שגיאה בגיבוי:", error);
           userData.avatar === "male"
             ? require("../assets/avatar_male.png")
             : userData.avatar === "female"
-            ? require("../assets/avatar_female.png")
-            : userData.avatar && userData.avatar.startsWith("http")
-            ? { uri: userData.avatar }
-            : require("../assets/avatar_default.png")
+              ? require("../assets/avatar_female.png")
+              : userData.avatar && userData.avatar.startsWith("http")
+                ? { uri: userData.avatar }
+                : require("../assets/avatar_default.png")
         }
         style={styles.avatar}
       />
@@ -236,7 +248,7 @@ const styles = StyleSheet.create({
     fontWeight: 800,
     marginBottom: 15,
   },
-   backupButton: {
+  backupButton: {
     padding: 12,
     borderRadius: 10,
     marginTop: 5,

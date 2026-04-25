@@ -22,9 +22,10 @@ const MemberCard = ({
   // כרטיס "הוספת משתמש"
   if (item?.isAddButton) {
     if (!isAdmin) return null;
-
+    // כרטיס מיוחד שמופיע רק למנהלים ומאפשר להוסיף משתמשים חדשים לקבוצה
     return (
       <TouchableOpacity
+        // key ייחודי לכרטיס הוספת משתמש כדי למנוע בעיות ברינדור של רשימות
         key="add-member"
         style={[
           styles.addUsers,
@@ -33,6 +34,7 @@ const MemberCard = ({
             borderColor: colors.secondary,
           },
         ]}
+        // בעת לחיצה על הכרטיס, ננווט למסך הוספת משתמשים ונעביר את מזהה הקבוצה ומזהה המשתמש הנוכחי כפרמטרים
         onPress={() => navigation.navigate("AddUsers", { groupId, userId })}
       >
         <Ionicons name="person-add" size={32} color={colors.primary} />
@@ -43,25 +45,39 @@ const MemberCard = ({
     );
   }
 
-  const memberId = item?.uid;
+  //כרטיס משתמש
+  // uid מזהה משתמש לפי
+  // או לפי אובייקט
+  const memberId = item?.uid || item;
 
   // progress אמיתי (יכול להיות מעל 100)
   const progressRaw = memberProgress?.[memberId] ?? 0;
 
   // לציור בלבד - לא יותר מ-100
   const progressForCircle = Math.min(Math.max(progressRaw, 0), 100);
-
+  // כמה המשתמש הוציא בפועל
   const spent = memberSpending?.[memberId] ?? 0;
-  const memberName = item?.name || allUsers?.[memberId] || `משתמש (${memberId})`;
+  // קודם כל מנסה לקבל מהאובייקט שם משתמש
+  //   Id אם אין שם אז מחפש במערך כל המשתמשים לפי
+  //  ואם גם שם לא נמצא אז מציג טקסט ברירת מחדלעם
+  const memberName =
+    item?.name || allUsers?.[memberId] || `משתמש (${memberId})`;
 
   // תקציב למשתמש (תמיד מספר)
   let memberBudget = 0;
-
-  if (memberBudgets?.[memberId] !== undefined && memberBudgets?.[memberId] !== null) {
-    // אם בבסיס נתונים שמור תקציב אישי
+  // אם יש תקציב אישי שמור בבסיס הנתונים עבור המשתמש הזה, נשתמש בו.
+  //  אחרת, אם יש תקציב כללי ומידע על מספר המשתמשים,
+  // נחלק את התקציב הכללי בין המשתמשים באופן שווה.
+  if (
+    memberBudgets?.[memberId] !== undefined &&
+    memberBudgets?.[memberId] !== null
+  ) {
     memberBudget = Number(memberBudgets[memberId]) || 0;
-  } else if (totalBudget && Array.isArray(membersData) && membersData.length > 0) {
-    // אם לא - חלוקה של תקציב כללי לפי כל המשתמשים
+  } else if (
+    totalBudget &&
+    Array.isArray(membersData) &&
+    membersData.length > 0
+  ) {
     memberBudget = Number(totalBudget) / membersData.length;
   }
 

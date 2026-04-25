@@ -61,7 +61,7 @@ const SavingDetails = () => {
       groupId,
       "savings",
       savingId,
-      "deposits"
+      "deposits",
     );
     const unsubDep = onSnapshot(depositsRef, (snap) => {
       const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -76,10 +76,11 @@ const SavingDetails = () => {
 
   // חישוב התקדמות
   const progress =
+    // חישוב אחוז ההתקדמות על סמך הסכום הנוכחי והיעד
     targetData?.targetAmount > 0
       ? (targetData.currentAmount / targetData.targetAmount) * 100
       : 0;
-
+  // קביעת צבע הפרוגרס ברגע שההתקדמות מגיעה ל-50% היא תהיה כתומה, מעל 80% תהיה ירוקה, אחרת אדומה
   let progressColor = "red";
   if (progress >= 80) progressColor = "green";
   else if (progress >= 50) progressColor = "orange";
@@ -110,7 +111,7 @@ const SavingDetails = () => {
         groupId,
         "savings",
         savingId,
-        "deposits"
+        "deposits",
       );
       await addDoc(depositsRef, {
         amount,
@@ -131,10 +132,12 @@ const SavingDetails = () => {
   };
 
   // מחיקת הפקדה
+  // expenseId אם יש
+  // זה אומר שההפקדה קשורה להוצאה, אז נמחק גם את ההוצאה
   const deleteDeposit = async (depositId, amount, expenseId) => {
     try {
       await deleteDoc(
-        doc(db, "groups", groupId, "savings", savingId, "deposits", depositId)
+        doc(db, "groups", groupId, "savings", savingId, "deposits", depositId),
       );
       if (expenseId) {
         await deleteDoc(doc(db, "groups", groupId, "expenses", expenseId));
@@ -147,7 +150,12 @@ const SavingDetails = () => {
     }
   };
 
-  // מחיקת יעד חיסכון
+  //  מחיקת יעד חיסכון
+  //  מחיקת כל ההפקדות הקשורות ליעד, מחיקת כל ההוצאות הקשורות להפקדות, ואז מחיקת היעד עצמו
+  //  מציג התראה לאישור לפני המחיקה כדי למנוע מחיקות בטעות
+  //  אם המשתמש מאשר, מבצע את המחיקה
+  //  אם יש שגיאה במהלך המחיקה, מציג התראה מתאימה
+  //  לאחר המחיקה, חוזר למסך הקודם
   const deleteSaving = async () => {
     Alert.alert(
       "מחיקת יעד",
@@ -165,20 +173,21 @@ const SavingDetails = () => {
                 groupId,
                 "savings",
                 savingId,
-                "deposits"
+                "deposits",
               );
+              // מקבל את כל ההפקדות הקשורות ליעד כדי למחוק גם את ההוצאות הקשורות אליהן
               const depositsSnap = await getDocs(depositsRef);
-
+              // עובר על כל ההפקדות ומוחק את ההפקדה ואת ההוצאה הקשורה אליה (אם יש)
               for (const deposit of depositsSnap.docs) {
                 const { expenseId } = deposit.data();
                 await deleteDoc(deposit.ref);
                 if (expenseId) {
                   await deleteDoc(
-                    doc(db, "groups", groupId, "expenses", expenseId)
+                    doc(db, "groups", groupId, "expenses", expenseId),
                   );
                 }
               }
-
+              // לאחר מחיקת כל ההפקדות וההוצאות הקשורות אליהן, מוחק את יעד החיסכון עצמו
               await deleteDoc(doc(db, "groups", groupId, "savings", savingId));
               navigation.goBack();
             } catch (error) {
@@ -187,7 +196,7 @@ const SavingDetails = () => {
             }
           },
         },
-      ]
+      ],
     );
   };
 

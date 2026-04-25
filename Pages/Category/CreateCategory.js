@@ -29,6 +29,7 @@ const colorOptions = [
   "#909090ff",
   "#000000ff",
 ];
+// אייקונים מתוך שמתאימים לקטגוריות הוצאות שונות
 const iconOptions = [
   "fast-food-outline",
   "car-outline",
@@ -62,21 +63,27 @@ const CreateCategory = () => {
   const [expiryDate, setExpiryDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
-  // יצירת קטגוריה
-  const handleSave = async () => {
+  // פונקציה לשמירת הקטגוריה החדשה ב
+  // Firebase
+  const saveNewCat = async () => {
     if (!name.trim()) {
       Alert.alert("שגיאה", "חייב למלא שם קטגוריה");
       return;
     }
 
     setLoading(true);
-
     try {
+      // כדי לקבוע את שדה ה
+      // order
+      // של הקטגוריה החדשה, אנחנו צריכים לדעת כמה קטגוריות כבר קיימות בקבוצה.
+      // לכן, אנחנו מביאים את כל הקטגוריות של הקבוצה וסופרים אותן
+      // order
+      // של הקטגוריה החדשה יהיה שווה למספר הקטגוריות הקיימות, מה שיבטיח שהיא תתווסף בסוף הרשימה.
       const categoriesSnap = await getDocs(
         collection(db, "groups", groupId, "categories"),
       );
       const nextOrder = categoriesSnap.size;
-
+      // עכשיו אנחנו יכולים ליצור את האובייקט של הקטגוריה החדשה עם כל השדות הדרושים, כולל השדה החדש של
       const data = {
         name,
         icon: selectedIcon,
@@ -86,7 +93,12 @@ const CreateCategory = () => {
         createdAt: Timestamp.now(),
         order: nextOrder,
       };
-
+      // אם זו קטגוריה מיוחדת, מוסיפים לה שדות נוספים כמו הערות ותוקף.
+      // אם זו קטגוריה רגילה, מספיק לשמור את התקציב (אפילו אם הוא 0)
+      // כדי שיהיה ברור בבסיס הנתונים שמדובר בקטגוריה רגילה עם תקציב מסוים (אפילו אם הוא 0).
+      // כך נמנע מצב שבו קטגוריה רגילה ללא שדה תקציב נתפסת בטעות כקטגוריה מיוחדת.
+      // בנוסף, זה מאפשר לנו לבדוק בעתיד האם קטגוריה היא רגילה או מיוחדת רק על סמך קיומו של שדה התקציב,
+      // בלי צורך בשדה נוסף שמסמן את סוג הקטגוריה.
       if (isTemporary) {
         data.notes = notes;
         data.eventStartDate = Timestamp.now();
@@ -95,15 +107,17 @@ const CreateCategory = () => {
       } else {
         data.budget = Number(budget) || 0;
       }
-
+      // לבסוף, אנחנו מוסיפים את המסמך החדש לאוסף הקטגוריות של הקבוצה בבסיס הנתונים
       await addDoc(collection(db, "groups", groupId, "categories"), data);
-
+      // אם הכל עבר בהצלחה, מציגים הודעת הצלחה וחוזרים למסך הקודם
       Alert.alert("הצלחה", `הקטגוריה "${name}" נשמרה בהצלחה`);
       navigation.goBack();
     } catch (err) {
+      // אם יש שגיאה, מציגים הודעת שגיאה וקונסול לוג עם הפרטים של השגיאה כדי שנוכל לבדוק מה קרה
       console.log("שגיאה:", err);
       Alert.alert("שגיאה", "לא הצלחנו לשמור את הקטגוריה");
     } finally {
+      // לא משנה מה קרה, בסוף אנחנו מורידים את מצב הטעינה כדי שהמשתמש יוכל לנסות שוב אם הייתה שגיאה
       setLoading(false);
     }
   };
@@ -240,7 +254,7 @@ const CreateCategory = () => {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: selectedColor }]}
-          onPress={handleSave}
+          onPress={saveNewCat}
           disabled={loading}
         >
           {loading ? (

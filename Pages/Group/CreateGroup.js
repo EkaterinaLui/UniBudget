@@ -1,18 +1,18 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@react-navigation/native";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@react-navigation/native";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 function CreateGroup({ navigation, db, userId, route }) {
   const [groupName, setGroupName] = useState("");
@@ -51,21 +51,31 @@ function CreateGroup({ navigation, db, userId, route }) {
   };
 
   return (
+    // מסך יצירת קבוצה חדש - שם הקבוצה, סוג הקבוצה (משפחה או שותפים), וכפתור שמירה. כולל טיפול בשגיאות וטעינה.
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       {/* כותרת וחזור */}
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Ionicons name="arrow-back" size={28} color={colors.text} />
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+      >
+        <Ionicons name="arrow-forward" size={28} color={colors.text} />
       </TouchableOpacity>
-      <Text style={[styles.title, { color: colors.text }]}>יצירת קבוצה חדשה</Text>
+      <Text style={[styles.title, { color: colors.text }]}>
+        יצירת קבוצה חדשה
+      </Text>
 
       {/* שדה שם */}
       <TextInput
         style={[
           styles.input,
-          { borderColor: colors.border, backgroundColor: colors.card, color: colors.text },
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+            color: colors.text,
+          },
         ]}
         placeholder="שם הקבוצה"
         placeholderTextColor={colors.text + "77"}
@@ -83,7 +93,9 @@ function CreateGroup({ navigation, db, userId, route }) {
           ]}
           onPress={() => setGroupType("family")}
         >
-          <Text style={{ color: groupType === "family" ? "white" : colors.text }}>
+          <Text
+            style={{ color: groupType === "family" ? "white" : colors.text }}
+          >
             משפחה
           </Text>
         </TouchableOpacity>
@@ -95,7 +107,9 @@ function CreateGroup({ navigation, db, userId, route }) {
           ]}
           onPress={() => setGroupType("partners")}
         >
-          <Text style={{ color: groupType === "partners" ? "white" : colors.text }}>
+          <Text
+            style={{ color: groupType === "partners" ? "white" : colors.text }}
+          >
             שותפים
           </Text>
         </TouchableOpacity>
@@ -110,7 +124,13 @@ function CreateGroup({ navigation, db, userId, route }) {
         <Text style={styles.saveBtnText}>{loading ? "שומר..." : "שמור"}</Text>
       </TouchableOpacity>
 
-      {loading && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 15 }} />}
+      {loading && (
+        <ActivityIndicator
+          size="small"
+          color={colors.primary}
+          style={{ marginTop: 15 }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }

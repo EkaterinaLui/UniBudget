@@ -1,18 +1,22 @@
-import React, { useContext } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
+import { useContext } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SettingsContext } from "../../Utilities/SettingsContext";
 
 function General() {
-  const { settings = {}, updateSettings, loading } = useContext(SettingsContext);
+  const {
+    settings = {},
+    updateSettings,
+    loading,
+  } = useContext(SettingsContext);
   const { colors } = useTheme();
 
   if (loading) {
@@ -25,12 +29,14 @@ function General() {
   }
 
   return (
+    // מסך ההגדרות הכלליות שמאפשר למשתמש לשנות את מצב הלילה והמטבע המועדף
     <View style={[styles.root, { backgroundColor: colors.generalBackground }]}>
       <Text style={[styles.title, { color: colors.generalTitle }]}>
         הגדרות כלליות
       </Text>
 
       {/* מצב כהה */}
+      {/* כרטיס שמכיל מתג למצב לילה שמאפשר למשתמש להחליף בין ערכת צבעים בהירה וכהה באפליקציה */}
       <View
         style={[
           styles.card,
@@ -45,8 +51,10 @@ function General() {
             מצב לילה
           </Text>
           <Switch
+            // המתג מציג את הערך הנוכחי של מצב הלילה ומאפשר לשנות אותו על ידי לחיצה
             value={settings.theme === "dark"}
             onValueChange={(val) =>
+              // בעת שינוי המתג, מעדכנים את ההגדרות עם הערך החדש של מצב הלילה (dark או light)
               updateSettings({ theme: val ? "dark" : "light" })
             }
           />

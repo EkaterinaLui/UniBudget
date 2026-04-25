@@ -1,11 +1,15 @@
 import { useNavigation, useTheme } from "@react-navigation/native";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+// דף ההגדרות של האפליקציה שמציג אפשרויות שונות לניווט למסכים אחרים
 function Settings() {
+  // שימוש בניווט כדי לנווט בין המסכים השונים של ההגדרות
   const navigation = useNavigation();
+  // שימוש בתמות של הניווט כדי לקבל את הצבעים הנוכחיים של האפליקציה ולהתאים את העיצוב בהתאם
   const { colors } = useTheme();
 
   // רשימת ההגדרות
+  // כל פריט ברשימה מכיל כותרת ושם המסך שאליו ינווט בעת לחיצה
   const settingsOptions = [
     { title: "הגדרות כלליות", screen: "General" },
     { title: "התראות", screen: "Notification" },

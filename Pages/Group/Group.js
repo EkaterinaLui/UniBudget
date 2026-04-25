@@ -44,21 +44,16 @@ const Group = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [expenses, setExpenses] = useState([]);
 
-  // raw categories from DB
   const [categoriesRaw, setCategoriesRaw] = useState([]);
   const [allUsers, setAllUsers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState([]);
 
-  // UI lists for draggable
   const [normalUI, setNormalUI] = useState([]);
   const [tempUI, setTempUI] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  // ---------------------------
-  // Firestore subscriptions
-  // ---------------------------
   useEffect(() => {
     if (!groupId || !db) {
       setError("חסר מזהה קבוצה או חיבור למסד הנתונים.");
@@ -69,7 +64,6 @@ const Group = () => {
     const groupRef = doc(db, "groups", groupId);
     const expensesRef = collection(db, "groups", groupId, "expenses");
 
-    // ✅ בלי orderBy כדי שקטגוריות בלי order עדיין יופיעו
     const categoriesQuery = query(
       collection(db, "groups", groupId, "categories"),
     );
@@ -130,7 +124,7 @@ const Group = () => {
   }, [groupId, userId]);
 
   // ---------------------------
-  // Savings (family)
+  // חיסכון
   // ---------------------------
   useEffect(() => {
     if (groupData?.type !== "family") return;
@@ -146,9 +140,6 @@ const Group = () => {
 
   const savingTargetList = [...saving, { id: "add-target", isAddButton: true }];
 
-  // ---------------------------
-  // Build spent map
-  // ---------------------------
   const spentByCategoryId = useMemo(() => {
     const map = {};
     for (const e of expenses) {
@@ -158,9 +149,6 @@ const Group = () => {
     return map;
   }, [expenses]);
 
-  // ---------------------------
-  // Prepare & sort categories locally
-  // ---------------------------
   const splitAndSort = (arr, isTemporary) => {
     const filtered = arr.filter((c) => !!c.isTemporary === isTemporary);
 
@@ -178,10 +166,8 @@ const Group = () => {
       else noOrder.push(item);
     }
 
-    // מיון: עם order לפי order
     withOrder.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-    // מיון של בלי order – רק כדי שיהיה יציב (אפשר לפי createdAt אם יש)
     noOrder.sort((a, b) => {
       const aTime =
         a.createdAt?.toDate?.()?.getTime?.() ??
@@ -202,14 +188,10 @@ const Group = () => {
     const normal = splitAndSort(categoriesRaw, false);
     const temp = splitAndSort(categoriesRaw, true);
 
-    // UI: קודם עםOrder ואז בליOrder (כדי שהישנות עדיין יופיעו)
     setNormalUI([...normal.withOrder, ...normal.noOrder]);
     setTempUI([...temp.withOrder, ...temp.noOrder]);
   }, [categoriesRaw, spentByCategoryId, isDragging]);
 
-  // ---------------------------
-  // Save order ONLY for items that haveOrder
-  // ---------------------------
   const saveOrderForOnlyOrdered = async (orderedList) => {
     try {
       const updates = orderedList.map((cat, index) =>
@@ -223,9 +205,6 @@ const Group = () => {
     }
   };
 
-  // ---------------------------
-  // UI states
-  // ---------------------------
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -246,14 +225,27 @@ const Group = () => {
   }
 
   // ---------------------------
-  // Calculations
+  // חישובים
   // ---------------------------
   const totalBudget = groupData?.totalBudget || 0;
-  const spentAmount = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  // הפרדת הוצאות לקטגוריות זמניות ולא זמניות
+  const tenporaryIs = categoriesRaw
+    .filter((c) => c.isTemporary)
+    .map((c) => c.id);
+  const expNotIsTemp = expenses.filter(
+    (e) => !tenporaryIs.includes(e.categoryId),
+  );
+  // סכום הוצאות לכל סוג קטגוריה
+  const expIsTemp = expenses.filter((e) => tenporaryIs.includes(e.categoryId));
+  const spentAmount = expNotIsTemp.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const spentAmountIsTemp = expIsTemp.reduce(
+    (sum, e) => sum + (e.amount || 0),
+    0,
+  );
+  // חישוב אחוז התקציב הכולל שהוצא - יכול להיות מעל 100% אם הוציאו יותר מהתקציב הכולל
   const totalProgress = totalBudget > 0 ? (spentAmount / totalBudget) * 100 : 0;
-
   const memberBudgets = groupData?.memberBudgets || {};
-
+  // חישוב כמה כל משתמש הוציא
   const memberSpending = membersData.reduce((acc, member) => {
     const memberId = member.uid || member;
     const totalSpent = expenses
@@ -263,18 +255,27 @@ const Group = () => {
     return acc;
   }, {});
 
+  // חישוב progress לכל משתמש
   const memberProgress = membersData.reduce((acc, member) => {
+    // יכול להיות מעל 100% אם הוציאו יותר מהתקציב האישי שלו
     const memberId = member.uid || member;
+    // התקציב האישי של המשתמש - אם לא מוגדר, מחלקים את התקציב הכולל במספר המשתמשים
     const totalSpent = memberSpending[memberId] || 0;
-    const individualBudget = Number(groupData?.memberBudgets?.[memberId] ?? 0);
-    acc[memberId] =
-      individualBudget > 0 ? (totalSpent / individualBudget) * 100 : 0;
+    // תקציב למשתמש (תמיד מספר)
+    const fromDB = groupData?.memberBudgets?.[memberId];
+    // חישוב גיבוי אם אין תקציב אישי שמור בבסיס נתונים
+    const fallback =
+      // אם יש תקציב כולל ומידע על משתמשים, מחלקים את התקציב הכולל במספר המשתמשים. אחרת, התקציב האישי הוא 0 כדי למנוע חלוקה באפס.
+      totalBudget && Array.isArray(membersData) && membersData.length > 0
+        ? Number(totalBudget) / membersData.length
+        : 0;
+    // אם התקציב האישי שמור בבסיס נתונים, משתמשים בו. אחרת, משתמשים בחלוקה שווה של התקציב הכללי
+    const budToUse = Number(fromDB ?? fallback) || 0;
+    // חישוב ה-progress - אם התקציב הוא 0, ה-progress הוא 0 כדי למנוע חלוקה באפס. אחרת, מחלקים את הסכום שהוצא בתקציב האישי ומכפילים ב-100 כדי לקבל אחוז.
+    acc[memberId] = budToUse > 0 ? (totalSpent / budToUse) * 100 : 0;
     return acc;
   }, {});
 
-  // ---------------------------
-  // Build draggable data (add button stays)
-  // ---------------------------
   const normalData = [
     ...normalUI,
     { id: "add-button-normal", isAddButton: true, isTemporaryAddButton: false },
@@ -285,9 +286,6 @@ const Group = () => {
     { id: "add-button-temp", isAddButton: true, isTemporaryAddButton: true },
   ];
 
-  // ---------------------------
-  // Render
-  // ---------------------------
   return (
     <View
       style={[
@@ -316,6 +314,7 @@ const Group = () => {
         </TouchableOpacity>
 
         {/* יתרה חודשית */}
+        {/* כרטיס שמציג את התקציב החודשי המשותף, כמה כבר הוצא וכמה נשאר, עם פס התקדמות וניווט לעמוד ניהול התקציב */}
         <TouchableOpacity
           style={[styles.budgetCard, { backgroundColor: colors.card }]}
           onPress={() =>
@@ -342,6 +341,10 @@ const Group = () => {
               ]}
             />
           </View>
+          {/* הוצאות מיוחדות */}
+          <Text style={[styles.budgetSubtitle, { color: colors.text }]}>
+            הוצאות מיוחדות: {formatCurrency(spentAmountIsTemp)}
+          </Text>
         </TouchableOpacity>
 
         {/* תור לתשלום */}
@@ -415,20 +418,17 @@ const Group = () => {
           onDragEnd={async ({ data }) => {
             setIsDragging(false);
 
-            // מפרידים: addButton / hasOrder / noOrder
             const withoutAdd = data.filter((x) => !x.isAddButton);
             const ordered = withoutAdd.filter((x) => x.hasOrder);
             const noOrder = withoutAdd.filter((x) => !x.hasOrder);
 
-            // בונים חזרה UI יציב: ordered קודם ואז noOrder
             const rebuilt = [...ordered, ...noOrder];
             setNormalUI(rebuilt);
 
-            // ✅ שומרים order רק לקטגוריות שיש להן order
             await saveOrderForOnlyOrdered(ordered);
           }}
           renderItem={({ item, drag, isActive }) => {
-            const canDrag = !item.isAddButton && item.hasOrder; // ✅ רק עם order
+            const canDrag = !item.isAddButton && item.hasOrder;
 
             return (
               <ScaleDecorator>
@@ -533,11 +533,23 @@ const Group = () => {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  scroll: { paddingTop: 15 },
+  root: {
+    flex: 1,
+  },
+  scroll: {
+    paddingTop: 15,
+  },
 
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  errorText: { fontSize: 16, textAlign: "center", marginTop: 20 },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
+  },
 
   groupHeader: {
     alignItems: "center",
@@ -563,11 +575,31 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  budgetTitle: { fontSize: 16, marginBottom: 8, textAlign: "left" },
-  budgetValue: { fontSize: 16, marginBottom: 6, textAlign: "left" },
+  budgetTitle: {
+    fontSize: 16,
+    marginBottom: 8,
+    textAlign: "left",
+  },
+  budgetSubtitle: {
+    marginTop: 8,
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: "left",
+  },
+  budgetValue: {
+    fontSize: 16,
+    marginBottom: 6,
+    textAlign: "left",
+  },
 
-  progressBar: { height: 12, borderRadius: 6, overflow: "hidden" },
-  progressFill: { height: "100%" },
+  progressBar: {
+    height: 12,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+  },
 
   sectionTitle: {
     marginHorizontal: 20,
